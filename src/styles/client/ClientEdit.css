@@ -1,0 +1,159 @@
+/* Client Edit Modal Styles */
+
+/* ── Shell / Card ─────────────────────────────────────────── */
+.client-edit-shell {
+  width: 100%;
+  max-width: 500px;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+  animation: modalFadeIn 0.2s ease-out;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+
+
+.client-edit-titlebar h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.02em;
+}
+
+.client-edit-close-x {
+  border: none;
+  background: transparent;
+  color: #ffffff;
+  font-size: 1.05rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0.85;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.client-edit-close-x:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* ── Form Body ────────────────────────────────────────────── */
+.client-edit-body {
+  padding: 1.35rem 1.4rem 1.1rem;
+}
+
+/* 2-column grid for name row, single column for the rest */
+.client-edit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem 1rem;
+}
+
+.client-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.38rem;
+}
+
+.client-edit-field.full-width {
+  grid-column: 1 / -1;
+}
+
+/* ── Labels ───────────────────────────────────────────────── */
+.client-edit-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Inputs & Selects ─────────────────────────────────────── */
+.client-edit-input,
+.client-edit-select {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+  color-scheme: light !important;
+  padding: 0.56rem 0.8rem;
+  border: 1.5px solid #d1d5db;
+  border-radius: 7px;
+  font-size: 0.88rem;
+  font-family: inherit;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.client-edit-input::placeholder {
+  color: #b0b8c4;
+  font-style: italic;
+}
+
+.client-edit-input:focus,
+.client-edit-select:focus {
+  border-color: #2e8b57;
+  box-shadow: 0 0 0 3px rgba(46, 139, 87, 0.15);
+}
+
+/* ── Action Buttons Footer ────────────────────────────────── */
+.client-edit-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.client-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.56rem 1.35rem;
+  border-radius: 7px;
+  border: none;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+.client-edit-btn:active {
+  transform: scale(0.97);
+}
+
+/* Cancel — Red */
+.client-edit-btn-cancel {
+  background: #fef2f2;
+  border: 1.5px solid #fca5a5;
+  color: #dc2626;
+}
+
+.client-edit-btn-cancel:hover {
+  background: #fee2e2;
+  border-color: #ef4444;
+}
+
+/* Save Changes — Green */
+.client-edit-btn-save {
+  background: linear-gradient(135deg, #2e8b57 0%, #3aaa6f 100%);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(46, 139, 87, 0.25);
+}
+
+.client-edit-btn-save:hover {
+  background: linear-gradient(135deg, #236c44 0%, #2e8b57 100%);
+  box-shadow: 0 4px 14px rgba(46, 139, 87, 0.3);
+}
+
+@media (max-width: 480px) {
+  .client-edit-grid {
+    grid-template-columns: 1fr;
+  }
+}

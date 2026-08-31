@@ -1,0 +1,100 @@
+/* Navigation Header Styles */
+.site-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 3rem;
+  background: rgba(13, 14, 18, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.3s ease;
+}
+
+.brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-family: var(--heading);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-h);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.brand-badge {
+  color: var(--accent);
+  font-size: 1.5rem;
+}
+
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: 2.25rem;
+}
+
+.site-nav a,
+.nav-login-btn {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #e4e4e7;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  position: relative;
+  padding: 0.4rem 0;
+  background: transparent;
+  transition: color 0.25s ease;
+  cursor: pointer;
+  border: none;
+}
+
+.site-nav a::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0%;
+  height: 2px;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+.site-nav a:hover,
+.nav-login-btn:hover {
+  color: var(--accent);
+}
+
+.site-nav a:hover::after {
+  width: 100%;
+}
+
+.login-btn-nav {
+  padding: 0.5rem 1.25rem !important;
+  border: 1px solid var(--accent) !important;
+  border-radius: 4px;
+  color: var(--accent) !important;
+  background: transparent;
+  transition: all 0.3s ease !important;
+}
+
+.login-btn-nav:hover {
+  background: var(--accent) !important;
+  color: #000 !important;
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
+}
+
+@media (max-width: 900px) {
+  .site-header {
+    padding: 1rem 1.5rem;
+  }
+
+  .site-nav {
+    gap: 1.25rem;
+  }
+}

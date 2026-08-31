@@ -1,0 +1,68 @@
+/* Appointment Page-Specific Styles */
+/* Shared table/modal/status/action styles live in SharedAdminTable.css */
+
+.appointment-page-container {
+  width: 100%;
+  min-height: calc(100vh - 70px);
+  margin: -2rem;
+  padding: 2rem 3.5rem 2.5rem;
+  box-sizing: border-box;
+  background: #ffffff;
+}
+
+.appointment-canvas {
+  width: 100%;
+  max-width: 980px;
+  min-height: 520px;
+  margin: 0 auto;
+  padding: 1.35rem 1.5rem 2rem;
+  background: #e9edf2;
+  border: 1px solid #cfd6df;
+  box-sizing: border-box;
+}
+
+.appointment-canvas .overview-header {
+  margin-bottom: 1.25rem;
+}
+
+.appointment-canvas .overview-title {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: normal;
+  color: #111827;
+}
+
+/* Appointment-specific action item colors */
+.appointment-actions-dropdown-item.view {
+  color: #15803d;
+}
+
+.appointment-actions-dropdown-item.manage {
+  color: #9a6b2f;
+}
+
+.appointment-actions-dropdown-item.cancel {
+  color: #dc2626;
+}
+
+@media (max-width: 768px) {
+  .appointment-page-container {
+    margin: -1rem;
+    padding: 1rem 1rem 1.5rem;
+  }
+
+  .appointment-canvas {
+    padding: 1rem 0.85rem 1.25rem;
+    min-height: 420px;
+  }
+
+  .appointment-table-titlebar {
+    padding: 0.85rem 1rem;
+  }
+
+  .appointment-table thead th,
+  .appointment-table tbody td {
+    padding: 0.8rem 0.9rem;
+  }
+}

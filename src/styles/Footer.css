@@ -1,0 +1,64 @@
+/* Footer Styles - Compact & Plain */
+.site-footer {
+  background: #090a0d;
+  border-top: none;
+  padding: 1.25rem 1rem 1rem;
+  text-align: center;
+}
+
+.copyright-text {
+  font-size: 0.78rem;
+  color: #71717a;
+  margin-top: 0.5rem;
+}
+
+/* Social Media Section */
+.footer-social-wrapper {
+  margin: 0.4rem 0;
+}
+
+.social-follow-text {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #888893;
+  margin-bottom: 0.35rem;
+  font-weight: 400;
+}
+
+.footer-social-icons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.footer-social-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.footer-social-link:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.footer-social-icon-img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  border-radius: 3px;
+  display: block;
+}
+
+
+
+
+

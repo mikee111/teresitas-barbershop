@@ -1,0 +1,127 @@
+/* Appointment Cancel Modal Styles - Matching Services Layout */
+
+.appointment-cancel-shell {
+  width: 100%;
+  max-width: 440px;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+  animation: modalFadeIn 0.2s ease-out;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.appointment-cancel-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #dc2626;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid #b91c1c;
+}
+
+.appointment-cancel-titlebar h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.01em;
+}
+
+.appointment-cancel-close {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0.2rem 0.45rem;
+  border-radius: 4px;
+  line-height: 1;
+  opacity: 0.9;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.appointment-cancel-close:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.appointment-cancel-body {
+  padding: 1.25rem 1.35rem;
+  background: #ffffff;
+}
+
+.appointment-cancel-summary {
+  border: 1px solid #f3f4f6;
+  border-radius: 6px;
+  background: #f9fafb;
+  padding: 0.85rem 1rem;
+}
+
+.appointment-cancel-summary h3 {
+  margin: 0 0 0.25rem;
+  font-size: 0.95rem;
+  color: #111827;
+  font-weight: 700;
+}
+
+.appointment-cancel-summary p {
+  margin: 0.2rem 0;
+  font-size: 0.85rem;
+  color: #4b5563;
+}
+
+.appointment-cancel-message {
+  margin: 1rem 0 0;
+  font-size: 0.88rem;
+  color: #374151;
+  line-height: 1.4;
+}
+
+.appointment-cancel-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #f3f4f6;
+}
+
+.appointment-keep-btn {
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  padding: 0.55rem 1.1rem;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #4b5563;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.appointment-keep-btn:hover {
+  background: #e5e7eb;
+  color: #1f2937;
+}
+
+.appointment-cancel-confirm-btn {
+  background: #dc2626;
+  border: none;
+  padding: 0.55rem 1.25rem;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.appointment-cancel-confirm-btn:hover {
+  background: #b91c1c;
+}
+
+.appointment-cancel-confirm-btn:active {
+  transform: scale(0.98);
+}

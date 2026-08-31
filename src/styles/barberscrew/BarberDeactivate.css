@@ -1,0 +1,125 @@
+/* Barber Deactivate Modal Styles - Matching Services Layout */
+
+.barber-deactivate-shell {
+  width: 100%;
+  max-width: 440px;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+  animation: modalFadeIn 0.2s ease-out;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.barber-deactivate-panel--inline {
+  width: 100%;
+  box-shadow: none;
+}
+
+/* Red title bar */
+.barber-deactivate-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #dc2626;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid #b91c1c;
+}
+
+.barber-deactivate-titlebar h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.01em;
+}
+
+.barber-deactivate-close-x {
+  border: none;
+  background: transparent;
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.2rem 0.45rem;
+  cursor: pointer;
+  border-radius: 4px;
+  opacity: 0.9;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.barber-deactivate-close-x:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Deactivate Content Body */
+.barber-deactivate-body {
+  padding: 1.25rem 1.35rem;
+  background: #ffffff;
+}
+
+.barber-deactivate-main-text {
+  font-size: 0.95rem;
+  color: #111827;
+  line-height: 1.45;
+  margin: 0 0 0.5rem;
+}
+
+.barber-deactivate-sub-text {
+  font-size: 0.88rem;
+  color: #6b7280;
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* Action Buttons */
+.barber-deactivate-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #f3f4f6;
+}
+
+.barber-deactivate-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 1.25rem;
+  border-radius: 6px;
+  border: none;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.barber-deactivate-btn:active {
+  transform: scale(0.98);
+}
+
+/* Cancel Button */
+.barber-deactivate-btn-cancel {
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  color: #4b5563;
+}
+
+.barber-deactivate-btn-cancel:hover {
+  background: #e5e7eb;
+  color: #1f2937;
+}
+
+/* Deactivate Button — Red */
+.barber-deactivate-btn-confirm {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.barber-deactivate-btn-confirm:hover {
+  background: #b91c1c;
+}

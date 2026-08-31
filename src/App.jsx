@@ -1,0 +1,182 @@
+import { useEffect, useState } from 'react'
+import './styles/global.css'
+import Navbar from './components/Navbar'
+import Footer from './components/Footer'
+import LoginModal from './components/LoginModal'
+import Home from './pages/Home'
+import About from './pages/About'
+import Services from './pages/services/Services'
+import Contact from './pages/Contact'
+import Dashboard from './pages/Dashboard'
+import UserDashboard from './pages/user/UserDashboard'
+import {
+  fetchAppointments,
+  createAppointmentApi,
+  updateAppointmentApi
+} from './services/appointmentService'
+
+const INITIAL_SHARED_APPOINTMENTS = [
+  {
+    id: 101,
+    refCode: '#TB-84920',
+    customer: 'Juan Dela Cruz',
+    service: { id: 3, name: 'Hair & Beard Combo', desc: 'Haircut and beard trim combo', price: 22.00 },
+    barber: { id: 1, name: 'Mark Reyes', role: 'Master Barber', rating: '⭐ 4.9' },
+    date: 'Aug 26, 2026',
+    time: '10:30 AM',
+    price: 22.00,
+    status: 'confirmed',
+    duration: '45 mins',
+    paymentMode: 'Pay at Shop (Cash / Card)',
+    requestedTime: '10:30 AM',
+    confirmedTime: '10:30 AM',
+  },
+  {
+    id: 102,
+    refCode: '#TB-73104',
+    customer: 'Juan Dela Cruz',
+    service: { id: 4, name: 'Scissor Cut', desc: 'Premium scissor haircut', price: 20.00 },
+    barber: { id: 2, name: 'John Carlio', role: 'Senior Barber', rating: '⭐ 4.8' },
+    date: 'Aug 12, 2026',
+    time: '02:00 PM',
+    price: 20.00,
+    status: 'completed',
+    duration: '40 mins',
+    paymentMode: 'Paid (Card)',
+    rating: 5,
+    review: 'Clean finish and great scissor work!',
+    requestedTime: '02:00 PM',
+    confirmedTime: '02:00 PM',
+  },
+  {
+    id: 103,
+    refCode: '#TB-62095',
+    customer: 'Juan Dela Cruz',
+    service: { id: 1, name: 'Hair Cut', desc: 'Classic haircut with wash and style', price: 15.00 },
+    barber: { id: 3, name: 'Luis Santos', role: 'Fade Specialist', rating: '⭐ 4.9' },
+    date: 'Jul 28, 2026',
+    time: '11:00 AM',
+    price: 15.00,
+    status: 'cancelled',
+    duration: '35 mins',
+    paymentMode: 'Pay at Shop',
+    cancelReason: 'Schedule conflict',
+    requestedTime: '11:00 AM',
+    confirmedTime: '',
+  },
+]
+
+function App() {
+  const [isLoginOpen, setIsLoginOpen] = useState(false)
+  const [currentView, setCurrentView] = useState('website') // 'website' | 'dashboard' | 'user-dashboard'
+  const [currentUser, setCurrentUser] = useState(null)
+
+  // ── Single shared appointments state ────────────────────────
+  const [sharedAppointments, setSharedAppointments] = useState(() => {
+    const saved = localStorage.getItem('tb_appointments')
+    return saved ? JSON.parse(saved) : INITIAL_SHARED_APPOINTMENTS
+  })
+
+  // Sync with backend API on mount
+  useEffect(() => {
+    const loadBackendData = async () => {
+      const data = await fetchAppointments()
+      if (data && Array.isArray(data) && data.length > 0) {
+        setSharedAppointments(data)
+        localStorage.setItem('tb_appointments', JSON.stringify(data))
+      }
+    }
+    loadBackendData()
+  }, [])
+
+  // Save to localStorage whenever sharedAppointments changes
+  useEffect(() => {
+    localStorage.setItem('tb_appointments', JSON.stringify(sharedAppointments))
+  }, [sharedAppointments])
+
+  // Add a new appointment (from user booking) — defaults to 'pending'
+  const handleAddSharedAppointment = async (newAppt) => {
+    setSharedAppointments((prev) => [newAppt, ...prev])
+    await createAppointmentApi(newAppt)
+  }
+
+  // Update an appointment by id (admin status changes + user reschedule/cancel/review)
+  const handleUpdateSharedAppointment = async (id, updates) => {
+    setSharedAppointments((prev) =>
+      prev.map((appt) => (appt.id === id ? { ...appt, ...updates } : appt))
+    )
+    await updateAppointmentApi(id, updates)
+  }
+
+  const handleLoginSuccess = (userData) => {
+    setCurrentUser(userData)
+    setIsLoginOpen(false)
+    if (userData.role === 'admin') {
+      setCurrentView('dashboard')
+    } else {
+      setCurrentView('user-dashboard')
+    }
+  }
+
+  // Logout: clear session and return to landing page
+  const handleLogout = () => {
+    setCurrentUser(null)
+    setCurrentView('website')
+    setIsLoginOpen(false)
+  }
+
+  // ── Admin Dashboard ─────────────────────────────────────────
+  if (currentView === 'dashboard' && currentUser?.role === 'admin') {
+    return (
+      <Dashboard
+        user={currentUser}
+        onBackToSite={handleLogout}
+        appointments={sharedAppointments}
+        onUpdateAppointment={handleUpdateSharedAppointment}
+      />
+    )
+  }
+
+  // ── User / Client Dashboard ─────────────────────────────────
+  if (currentView === 'user-dashboard' && currentUser) {
+    return (
+      <UserDashboard
+        user={currentUser}
+        onLogout={handleLogout}
+        onUserUpdate={(updates) =>
+          setCurrentUser((prev) => (prev ? { ...prev, ...updates } : prev))
+        }
+        appointments={sharedAppointments}
+        onUpdateAppointment={handleUpdateSharedAppointment}
+        onAddAppointment={handleAddSharedAppointment}
+      />
+    )
+  }
+
+  return (
+    <>
+      <Navbar
+        onLoginClick={() => setIsLoginOpen(true)}
+        isLoggedIn={false}
+      />
+
+      <main>
+        <Home />
+        <div className="section-cut-divider">Classic Cuts · Modern Style</div>
+        <About />
+        <div className="section-cut-divider">Premium Grooming</div>
+        <Services />
+        <Contact />
+      </main>
+
+      <Footer />
+      <LoginModal
+        isOpen={isLoginOpen}
+        onClose={() => setIsLoginOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
+      />
+    </>
+  )
+}
+
+export default App

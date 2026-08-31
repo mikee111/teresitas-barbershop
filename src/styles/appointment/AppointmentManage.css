@@ -1,0 +1,171 @@
+/* Appointment Manage Modal Styles - Matching Services Layout */
+
+.appointment-manage-shell {
+  width: 100%;
+  max-width: 520px;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+  animation: modalFadeIn 0.2s ease-out;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.appointment-manage-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #c8a97e;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid #b18f61;
+}
+
+.appointment-manage-titlebar h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.01em;
+}
+
+.appointment-manage-close {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0.2rem 0.45rem;
+  border-radius: 4px;
+  line-height: 1;
+  opacity: 0.9;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.appointment-manage-close:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.appointment-manage-body {
+  padding: 1.25rem 1.35rem;
+  background: #ffffff;
+}
+
+.appointment-manage-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem 1rem;
+}
+
+.appointment-manage-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.appointment-manage-field.full-width {
+  grid-column: 1 / -1;
+}
+
+.appointment-manage-field label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+/* PLAIN WHITE FORM INPUTS */
+.appointment-manage-value {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #111827;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.appointment-manage-select,
+.appointment-manage-input {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+  color-scheme: light !important;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.appointment-manage-select:focus,
+.appointment-manage-input:focus {
+  border-color: #c8a97e;
+  box-shadow: 0 0 0 2px rgba(200, 169, 126, 0.25);
+}
+
+.appointment-manage-note {
+  margin: 0.2rem 0 0;
+  font-size: 0.74rem;
+  line-height: 1.35;
+  color: #6b7280;
+}
+
+.appointment-manage-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #f3f4f6;
+}
+
+.appointment-btn-cancel {
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  padding: 0.55rem 1.1rem;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #4b5563;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.appointment-btn-cancel:hover {
+  background: #e5e7eb;
+  color: #1f2937;
+}
+
+.appointment-confirm-btn {
+  background: #2e8b57;
+  border: none;
+  padding: 0.55rem 1.25rem;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.appointment-confirm-btn:hover {
+  background: #236c44;
+}
+
+.appointment-confirm-btn:active {
+  transform: scale(0.98);
+}
+
+@media (max-width: 540px) {
+  .appointment-manage-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,53 @@
+/* Barbers Crew Page-Specific Styles */
+/* Shared table/modal/status/action styles live in SharedAdminTable.css */
+
+/* Barbers Crew page layout */
+.barberscrew-page-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Barber name cell — icon + purple name */
+.bc-barber-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.bc-barber-icon {
+  font-size: 1.1rem;
+  color: #6d4fc2;
+  flex-shrink: 0;
+}
+
+.bc-barber-name {
+  color: #6d4fc2;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* Status dot */
+.bc-status-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.bc-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.bc-dot-active   { background: #22c55e; }
+.bc-dot-inactive { background: #ef4444; }
+.bc-dot-pending  { background: #f59e0b; }
+
+/* Dropdown action item colors */
+.bc-action-view       { color: #15803d; }
+.bc-action-edit       { color: #9a6b2f; }
+.bc-action-deactivate { color: #dc2626; }
+.bc-action-activate   { color: #111827; font-weight: 700; }
+.appointment-actions-dropdown-item.bc-action-edit.inactive-edit { color: #2563eb; }

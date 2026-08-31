@@ -1,0 +1,65 @@
+/* ── User Dashboard Custom & Empty State Styles ─────────────── */
+
+.client-dashboard-content {
+  flex: 1;
+  min-height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+}
+
+.client-dashboard-content--profile {
+  overflow: visible;
+  min-height: auto;
+  flex: 0 0 auto;
+}
+
+.client-empty-canvas {
+  flex: 1;
+  min-height: 480px;
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  transition: all 0.2s ease;
+}
+
+.client-empty-canvas-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 440px;
+}
+
+.client-empty-icon-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.12) 0%, rgba(99, 102, 241, 0.12) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.1);
+}
+
+.client-empty-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 0.5rem 0;
+  letter-spacing: -0.01em;
+}
+
+.client-empty-desc {
+  font-size: 0.92rem;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.55;
+}

@@ -1,0 +1,664 @@
+/* ── My Appointments Styles ─────────────────────────────────── */
+
+.my-appointments-container {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ── Header ─────────────────────────────────────────────────── */
+.my-appts-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.my-appts-title-group h1 {
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.25rem 0;
+}
+
+.my-appts-subtitle {
+  font-size: 0.92rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.my-appts-book-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.92rem;
+  padding: 0.7rem 1.35rem;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.25);
+  transition: all 0.2s ease;
+}
+
+.my-appts-book-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(124, 58, 237, 0.35);
+}
+
+/* ── Top Glance Stats ───────────────────────────────────────── */
+.my-appts-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.25rem;
+}
+
+.my-appts-stat-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.15rem;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+  transition: all 0.2s ease;
+}
+
+.my-appts-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.04);
+}
+
+.my-appts-stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  flex-shrink: 0;
+}
+
+.my-appts-stat-icon.purple {
+  background: rgba(124, 58, 237, 0.1);
+  color: #7c3aed;
+}
+
+.my-appts-stat-icon.emerald {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.my-appts-stat-icon.amber {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+
+.my-appts-stat-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.2rem;
+}
+
+.my-appts-stat-val {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.2;
+}
+
+.my-appts-stat-sub {
+  font-size: 0.78rem;
+  color: #9ca3af;
+  margin-top: 0.15rem;
+}
+
+/* ── Filter Bar & Search ────────────────────────────────────── */
+.my-appts-toolbar {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.my-appts-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.my-appts-tab-btn {
+  background: #f3f4f6;
+  border: 1px solid transparent;
+  color: #4b5563;
+  font-weight: 600;
+  font-size: 0.88rem;
+  padding: 0.55rem 1.1rem;
+  border-radius: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.my-appts-tab-btn:hover {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.my-appts-tab-btn.active {
+  background: #7c3aed;
+  color: #ffffff;
+  box-shadow: 0 3px 10px rgba(124, 58, 237, 0.3);
+}
+
+.my-appts-tab-count {
+  background: rgba(0, 0, 0, 0.08);
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.my-appts-tab-btn.active .my-appts-tab-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.my-appts-search-box {
+  position: relative;
+  min-width: 240px;
+}
+
+.my-appts-search-input {
+  width: 100%;
+  padding: 0.6rem 1rem 0.6rem 2.4rem;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  font-size: 0.88rem;
+  background: #f9fafb;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.my-appts-search-input:focus {
+  border-color: #7c3aed;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+}
+
+.my-appts-search-icon {
+  position: absolute;
+  left: 0.8rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+/* ── Appointments List & Cards ──────────────────────────────── */
+.my-appts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.my-appt-card {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 1.5rem;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  transition: all 0.2s ease;
+}
+
+.my-appt-card:hover {
+  border-color: rgba(124, 58, 237, 0.2);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+}
+
+.my-appt-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.my-appt-card-service {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.my-appt-service-icon-box {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: #f5f3ff;
+  border: 1px solid rgba(124, 58, 237, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.my-appt-service-img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.my-appt-service-meta h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.25rem 0;
+}
+
+.my-appt-ref {
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.my-appt-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.my-appt-status-chip.confirmed {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.my-appt-status-chip.in-progress {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.my-appt-status-chip.completed {
+  background: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #e5e7eb;
+}
+
+.my-appt-status-chip.cancelled {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.my-appt-status-chip.pending {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+
+
+/* ── Card Details Grid ──────────────────────────────────────── */
+.my-appt-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  background: #f9fafb;
+  padding: 1rem 1.25rem;
+  border-radius: 14px;
+  border: 1px solid #f3f4f6;
+}
+
+.my-appt-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.my-appt-info-label {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.my-appt-info-val {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.my-appt-barber-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* ── Card Actions ───────────────────────────────────────────── */
+.my-appt-card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #f3f4f6;
+}
+
+.my-appt-price-summary {
+  font-size: 0.95rem;
+  color: #4b5563;
+}
+
+.my-appt-price-amount {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #7c3aed;
+}
+
+.my-appt-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.my-appt-btn {
+  font-size: 0.84rem;
+  font-weight: 600;
+  padding: 0.55rem 1rem;
+  border-radius: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.my-appt-btn-outline {
+  background: #ffffff;
+  border-color: #e5e7eb;
+  color: #374151;
+}
+
+.my-appt-btn-outline:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+  color: #111827;
+}
+
+.my-appt-btn-reschedule {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #2563eb;
+}
+
+.my-appt-btn-reschedule:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
+}
+
+.my-appt-btn-cancel {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+.my-appt-btn-cancel:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+}
+
+.my-appt-btn-rebook {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.2);
+}
+
+.my-appt-btn-rebook:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+}
+
+.my-appt-btn-review {
+  background: #fef3c7;
+  border-color: #fde68a;
+  color: #b45309;
+}
+
+.my-appt-btn-review:hover {
+  background: #fde68a;
+}
+
+/* ── Modals Styling ─────────────────────────────────────────── */
+.my-appt-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+}
+
+.my-appt-modal-card {
+  background: #ffffff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalPop {
+  0% { transform: scale(0.95); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.my-appt-modal-header {
+  padding: 1.25rem 1.5rem;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.my-appt-modal-header h2 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.my-appt-modal-close {
+  background: transparent;
+  border: none;
+  font-size: 1.25rem;
+  color: #9ca3af;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.my-appt-modal-close:hover {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.my-appt-modal-body {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.my-appt-receipt-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.my-appt-receipt-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.my-appt-receipt-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+.my-appt-receipt-row.bold {
+  font-weight: 700;
+  color: #111827;
+  font-size: 1rem;
+}
+
+.my-appt-receipt-divider {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 0.25rem 0;
+}
+
+.my-appt-modal-footer {
+  padding: 1rem 1.5rem;
+  background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+/* ── Reschedule Form in Modal ───────────────────────────────── */
+.my-appt-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.my-appt-form-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.my-appt-select-input {
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  font-size: 0.9rem;
+  background: #ffffff;
+  outline: none;
+  font-family: inherit;
+}
+
+.my-appt-select-input:focus {
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+}
+
+/* ── Review Stars ───────────────────────────────────────────── */
+.my-appt-stars-wrap {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 1.75rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.my-appt-star-btn {
+  background: none;
+  border: none;
+  font-size: 1.8rem;
+  cursor: pointer;
+  color: #d1d5db;
+  transition: transform 0.15s ease;
+  padding: 0;
+}
+
+.my-appt-star-btn.active {
+  color: #f59e0b;
+}
+
+.my-appt-star-btn:hover {
+  transform: scale(1.15);
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .my-appts-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .my-appts-search-box {
+    min-width: 100%;
+  }
+  .my-appt-card-top {
+    flex-direction: column;
+  }
+  .my-appt-card-bottom {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .my-appt-actions-group {
+    justify-content: stretch;
+  }
+  .my-appt-btn {
+    flex: 1;
+    justify-content: center;
+  }
+}

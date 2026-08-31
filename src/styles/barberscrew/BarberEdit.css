@@ -1,0 +1,175 @@
+/* Barber Edit Modal Styles - Matching Services Layout */
+
+.barber-edit-shell {
+  width: 100%;
+  max-width: 520px;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+  animation: modalFadeIn 0.2s ease-out;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.barber-edit-panel--inline {
+  width: 100%;
+  box-shadow: none;
+}
+
+/* Green title bar */
+.barber-edit-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #2e8b57;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid #256f46;
+}
+
+.barber-edit-titlebar h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.01em;
+}
+
+.barber-edit-close-x {
+  border: none;
+  background: transparent;
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.2rem 0.45rem;
+  cursor: pointer;
+  border-radius: 4px;
+  opacity: 0.9;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.barber-edit-close-x:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Form Body */
+.barber-edit-body {
+  padding: 1.25rem 1.35rem;
+  background: #ffffff;
+}
+
+.barber-edit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem 1rem;
+}
+
+.barber-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.barber-edit-field.full-width {
+  grid-column: 1 / -1;
+}
+
+.barber-edit-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+/* PLAIN WHITE FORM INPUTS */
+.barber-edit-input,
+.barber-edit-select {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+  color-scheme: light !important;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.barber-edit-input:focus,
+.barber-edit-select:focus {
+  border-color: #2e8b57;
+  box-shadow: 0 0 0 2px rgba(46, 139, 87, 0.18);
+}
+
+/* Schedule dual input row */
+.barber-edit-schedule-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.barber-edit-schedule-dash {
+  color: #6b7280;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* Action Buttons Footer */
+.barber-edit-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #f3f4f6;
+}
+
+.barber-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 1.25rem;
+  border-radius: 6px;
+  border: none;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.barber-edit-btn:active {
+  transform: scale(0.98);
+}
+
+/* Cancel Button */
+.barber-edit-btn-cancel {
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  color: #4b5563;
+}
+
+.barber-edit-btn-cancel:hover {
+  background: #e5e7eb;
+  color: #1f2937;
+}
+
+/* Save Changes Button — Green */
+.barber-edit-btn-save {
+  background: #2e8b57;
+  color: #ffffff;
+}
+
+.barber-edit-btn-save:hover {
+  background: #236c44;
+}
+
+@media (max-width: 540px) {
+  .barber-edit-grid {
+    grid-template-columns: 1fr;
+  }
+}

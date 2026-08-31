@@ -1,0 +1,507 @@
+/* Shared Admin Dashboard Styles (Tables, Action Menus, Modals, Status Badges) */
+
+/* Table Shell & Canvas */
+.appointment-table-shell {
+  position: relative;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 18px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
+}
+
+.appointment-table-shell--overlay-open {
+  min-height: 420px;
+}
+
+/* Modal Overlay — fixed to viewport so tall modals never clip */
+.appointment-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(3px);
+}
+
+/* Titlebars */
+.appointment-table-titlebar {
+  background: linear-gradient(135deg, #2e8b57 0%, #246e45 100%);
+  padding: 0.95rem 1.35rem;
+  border-bottom: 1px solid #20623e;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.appointment-table-titlebar h2 {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* Search Bar Component */
+.services-search-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 1;
+  max-width: 360px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.5rem 0.85rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}
+
+.services-search-wrapper:focus-within {
+  border-color: #2e8b57;
+  box-shadow: 0 0 0 3px rgba(46, 139, 87, 0.15);
+}
+
+.services-search-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  width: 100%;
+  font-size: 0.88rem;
+  color: #111827;
+  color-scheme: light;
+}
+
+.services-search-input::placeholder {
+  color: #94a3b8;
+}
+
+/* Table Elements */
+.appointment-table-wrapper {
+  overflow-x: auto;
+}
+
+.appointment-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 760px;
+}
+
+.appointment-table thead th {
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-align: left;
+  padding: 0.9rem 1.25rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.appointment-table tbody td {
+  padding: 1rem 1.25rem;
+  font-size: 0.9rem;
+  color: #374151;
+  border-bottom: 1px solid #f1f5f9;
+  background: #ffffff;
+  vertical-align: middle;
+  transition: background-color 0.15s ease;
+}
+
+.appointment-table tbody tr:hover td {
+  background-color: #f8fafc;
+}
+
+.appointment-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Cell Elements */
+.bc-barber-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.bc-barber-icon {
+  font-size: 1.1rem;
+  color: #6d4fc2;
+  flex-shrink: 0;
+}
+
+.bc-barber-name {
+  color: #6d4fc2;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* Status Indicators */
+.bc-status-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.bc-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.bc-dot-active   { background: #22c55e; }
+.bc-dot-inactive { background: #ef4444; }
+.bc-dot-pending  { background: #f59e0b; }
+
+.appointment-status {
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.appointment-status.confirmed,
+.appointment-status.active {
+  color: #15803d;
+}
+
+.appointment-status.completed {
+  color: #1f2937;
+}
+
+.appointment-status.pending {
+  color: #9a6b2f;
+}
+
+.appointment-status.cancelled,
+.appointment-status.inactive {
+  color: #dc2626;
+}
+
+/* 3-Dot Action Menus */
+.appointment-actions-menu {
+  position: relative;
+  display: inline-flex;
+}
+
+.appointment-actions-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #374151;
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.appointment-actions-trigger:hover,
+.appointment-actions-trigger[aria-expanded='true'] {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.appointment-actions-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  min-width: 136px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -3px rgba(15, 23, 42, 0.12), 0 4px 6px -2px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+}
+
+.appointment-actions-dropdown-item {
+  display: block;
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 0.62rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.appointment-actions-dropdown-item:hover {
+  background: #f4f7f5;
+}
+
+.bc-action-view       { color: #15803d; }
+.bc-action-edit       { color: #9a6b2f; }
+.bc-action-deactivate { color: #dc2626; }
+.bc-action-activate   { color: #111827; font-weight: 700; }
+
+/* Reusable Modal & Form Structure */
+.service-modal-shell,
+.admin-modal-shell {
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+  width: 100%;
+  max-width: 520px;
+  overflow: hidden;
+  animation: modalFadeIn 0.2s ease-out;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.service-modal-titlebar,
+.admin-modal-titlebar {
+  background: #2e8b57;
+  padding: 0.85rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.service-modal-titlebar h2,
+.admin-modal-titlebar h2 {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.01em;
+}
+
+.service-modal-close,
+.admin-modal-close {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0.2rem 0.45rem;
+  border-radius: 4px;
+  line-height: 1;
+  opacity: 0.9;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.service-modal-close:hover,
+.admin-modal-close:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.service-modal-body,
+.admin-modal-body {
+  padding: 1.25rem 1.35rem;
+  background: #ffffff;
+}
+
+.service-form-grid,
+.admin-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem 1rem;
+}
+
+.service-form-group,
+.admin-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.service-form-group.full-width,
+.admin-form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.service-form-group label,
+.admin-form-group label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+/* PLAIN WHITE FORM INPUTS */
+.service-form-input,
+.service-form-select,
+.service-form-textarea,
+.admin-form-input,
+.admin-form-select,
+.admin-form-textarea {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+  color-scheme: light !important;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.service-form-input:focus,
+.service-form-select:focus,
+.service-form-textarea:focus,
+.admin-form-input:focus,
+.admin-form-select:focus,
+.admin-form-textarea:focus {
+  border-color: #2e8b57;
+  box-shadow: 0 0 0 2px rgba(46, 139, 87, 0.18);
+}
+
+.service-form-actions,
+.admin-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #f3f4f6;
+}
+
+.service-btn-cancel,
+.admin-btn-cancel {
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  padding: 0.55rem 1.1rem;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #4b5563;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.service-btn-cancel:hover,
+.admin-btn-cancel:hover {
+  background: #e5e7eb;
+  color: #1f2937;
+}
+
+.service-btn-submit,
+.admin-btn-submit {
+  background: #2e8b57;
+  border: none;
+  padding: 0.55rem 1.25rem;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.service-btn-submit:hover,
+.admin-btn-submit:hover {
+  background: #236c44;
+}
+
+.service-btn-submit:active,
+.admin-btn-submit:active {
+  transform: scale(0.98);
+}
+
+/* Red Outline — Cancel button for edit/delete forms */
+.admin-btn-danger-outline {
+  background: #fff1f2;
+  border: 1.5px solid #fca5a5;
+  padding: 0.55rem 1.25rem;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #dc2626;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+.admin-btn-danger-outline:hover {
+  background: #fee2e2;
+  border-color: #ef4444;
+}
+
+.admin-btn-danger-outline:active {
+  transform: scale(0.98);
+}
+
+.service-btn-danger,
+.admin-btn-danger {
+  background: #dc2626;
+  border: none;
+  padding: 0.55rem 1.25rem;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.service-btn-danger:hover,
+.admin-btn-danger:hover {
+  background: #b91c1c;
+}
+
+/* View Details Structure */
+.service-view-details,
+.admin-view-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.service-view-row,
+.admin-view-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.service-view-label,
+.admin-view-label {
+  font-size: 0.82rem;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.service-view-val,
+.admin-view-val {
+  font-size: 0.9rem;
+  color: #111827;
+  font-weight: 600;
+}
+
+@media (max-width: 540px) {
+  .service-form-grid,
+  .admin-form-grid {
+    grid-template-columns: 1fr;
+  }
+}

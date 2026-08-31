@@ -1,0 +1,74 @@
+/* Services Admin Page Specific Styles */
+
+.service-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.service-cell-img {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 1px solid #e2e8f0;
+}
+
+.service-cell-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.service-cell-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.service-cell-name {
+  color: #111827;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.service-cell-category {
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+
+.service-price-badge {
+  font-weight: 700;
+  color: #047857;
+  background: #ecfdf5;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.services-btn-add {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #2e8b57;
+  color: #ffffff;
+  border: none;
+  padding: 0.5rem 0.95rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.services-btn-add:hover {
+  background: #236c44;
+}
+
+.services-btn-add:active {
+  transform: scale(0.98);
+}
