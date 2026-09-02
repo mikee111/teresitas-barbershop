@@ -3,12 +3,18 @@ import db from '../config/database.js'
 // Get all appointments (with optional status/search filters)
 export const getAppointments = async (req, res) => {
   try {
-    const [rows] = await db.query(
-      `SELECT * FROM appointments ORDER BY id DESC`
-    )
-    
+    const { data: rows, error } = await db
+      .from('appointments')
+      .select('*')
+      .order('id', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching appointments from Supabase:', error)
+      return res.status(500).json({ error: error.message || 'Failed to fetch appointments from database' })
+    }
+
     // Format JSON response to match React frontend structure
-    const formatted = rows.map((row) => ({
+    const formatted = (rows || []).map((row) => ({
       id: row.id,
       refCode: row.ref_code,
       customer: row.customer_name,
@@ -64,40 +70,47 @@ export const createAppointment = async (req, res) => {
     const finalPrice = price || service?.price || 15.00
     const customerName = customer || 'Juan Dela Cruz'
 
-    const [result] = await db.query(
-      `INSERT INTO appointments 
-        (ref_code, customer_name, service_id, barber_id, service_name, barber_name, date, time, requested_time, price, status, duration, payment_mode) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
-      [
-        generatedRef,
-        customerName,
-        serviceId,
-        barberId,
-        serviceName,
-        barberName,
-        date,
-        time,
-        time,
-        finalPrice,
-        duration || '45 mins',
-        paymentMode || 'Pay at Shop (Cash / Card)'
-      ]
-    )
-
-    const newAppointment = {
-      id: result.insertId,
-      refCode: generatedRef,
-      customer: customerName,
-      service: { id: serviceId, name: serviceName, price: finalPrice },
-      barber: { id: barberId, name: barberName },
-      date,
-      time,
-      requestedTime: time,
-      confirmedTime: '',
+    const recordToInsert = {
+      ref_code: generatedRef,
+      customer_name: customerName,
+      service_id: serviceId,
+      barber_id: barberId,
+      service_name: serviceName,
+      barber_name: barberName,
+      date: date || '',
+      time: time || '',
+      requested_time: time || '',
       price: finalPrice,
       status: 'pending',
       duration: duration || '45 mins',
-      paymentMode: paymentMode || 'Pay at Shop (Cash / Card)'
+      payment_mode: paymentMode || 'Pay at Shop (Cash / Card)'
+    }
+
+    const { data, error } = await db
+      .from('appointments')
+      .insert([recordToInsert])
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error creating appointment in Supabase:', error)
+      return res.status(500).json({ error: error.message || 'Failed to create appointment in database' })
+    }
+
+    const newAppointment = {
+      id: data.id,
+      refCode: data.ref_code,
+      customer: data.customer_name,
+      service: { id: data.service_id, name: data.service_name, price: Number(data.price) },
+      barber: { id: data.barber_id, name: data.barber_name },
+      date: data.date,
+      time: data.time,
+      requestedTime: data.requested_time || data.time,
+      confirmedTime: '',
+      price: Number(data.price),
+      status: data.status || 'pending',
+      duration: data.duration || '45 mins',
+      paymentMode: data.payment_mode || 'Pay at Shop (Cash / Card)'
     }
 
     res.status(201).json(newAppointment)
@@ -113,55 +126,50 @@ export const updateAppointment = async (req, res) => {
     const { id } = req.params
     const updates = req.body
 
-    const fields = []
-    const values = []
+    const recordUpdates = {}
 
     if (updates.status !== undefined) {
-      fields.push('status = ?')
-      values.push(updates.status.toLowerCase())
+      recordUpdates.status = updates.status.toLowerCase()
     }
     if (updates.confirmedTime !== undefined) {
-      fields.push('confirmed_time = ?')
-      values.push(updates.confirmedTime)
+      recordUpdates.confirmed_time = updates.confirmedTime
     }
     if (updates.time !== undefined) {
-      fields.push('time = ?')
-      values.push(updates.time)
+      recordUpdates.time = updates.time
     }
     if (updates.date !== undefined) {
-      fields.push('date = ?')
-      values.push(updates.date)
+      recordUpdates.date = updates.date
     }
     if (updates.cancelReason !== undefined) {
-      fields.push('cancel_reason = ?')
-      values.push(updates.cancelReason)
+      recordUpdates.cancel_reason = updates.cancelReason
     }
     if (updates.rating !== undefined) {
-      fields.push('rating = ?')
-      values.push(updates.rating)
+      recordUpdates.rating = updates.rating
     }
     if (updates.review !== undefined) {
-      fields.push('review = ?')
-      values.push(updates.review)
+      recordUpdates.review = updates.review
     }
     if (updates.barber !== undefined) {
       const barberName = typeof updates.barber === 'object' ? updates.barber.name : updates.barber
-      fields.push('barber_name = ?')
-      values.push(barberName)
+      recordUpdates.barber_name = barberName
     }
 
-    if (fields.length === 0) {
+    if (Object.keys(recordUpdates).length === 0) {
       return res.status(400).json({ error: 'No fields provided for update' })
     }
 
-    values.push(id)
+    const { data, error } = await db
+      .from('appointments')
+      .update(recordUpdates)
+      .eq('id', id)
+      .select()
 
-    await db.query(
-      `UPDATE appointments SET ${fields.join(', ')} WHERE id = ?`,
-      values
-    )
+    if (error) {
+      console.error('Error updating appointment in Supabase:', error)
+      return res.status(500).json({ error: error.message || 'Failed to update appointment' })
+    }
 
-    res.json({ message: 'Appointment updated successfully', id })
+    res.json({ message: 'Appointment updated successfully', id, data })
   } catch (error) {
     console.error('Error updating appointment:', error)
     res.status(500).json({ error: 'Failed to update appointment' })

@@ -1,18 +1,15 @@
-import mysql from 'mysql2/promise'
+import { createClient } from '@supabase/supabase-js'
 import dotenv from 'dotenv'
 
 dotenv.config()
 
-// Create MySQL Connection Pool for XAMPP
-const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  port: Number(process.env.DB_PORT) || 3306,
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'teresitas_barbershop',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-})
+const supabaseUrl = process.env.SUPABASE_URL
+const supabaseKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_PUBLISHABLE_KEY
 
-export default pool
+if (!supabaseUrl || !supabaseKey) {
+  console.warn('⚠️ Warning: Supabase URL or Key is missing in environment variables.')
+}
+
+export const supabase = createClient(supabaseUrl, supabaseKey)
+
+export default supabase
