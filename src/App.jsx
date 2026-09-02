@@ -97,7 +97,14 @@ function App() {
   // Add a new appointment (from user booking) — defaults to 'pending'
   const handleAddSharedAppointment = async (newAppt) => {
     setSharedAppointments((prev) => [newAppt, ...prev])
-    await createAppointmentApi(newAppt)
+    const created = await createAppointmentApi(newAppt)
+    if (created && created.id) {
+      setSharedAppointments((prev) =>
+        prev.map((appt) =>
+          (appt.refCode === created.refCode || appt.id === newAppt.id) ? { ...appt, ...created } : appt
+        )
+      )
+    }
   }
 
   // Update an appointment by id (admin status changes + user reschedule/cancel/review)

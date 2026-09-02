@@ -68,7 +68,7 @@ function UserDashboard({ user, onLogout, onUserUpdate, appointments = [], onUpda
 
   // Count active upcoming appointments
   const upcomingCount = appointments.filter(
-    a => a.status === 'confirmed' || a.status === 'in-progress'
+    a => a.status === 'confirmed' || a.status === 'pending' || a.status === 'in-progress'
   ).length
 
   return (
