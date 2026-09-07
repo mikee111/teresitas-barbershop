@@ -6,8 +6,9 @@ import crewCutImg from '../../assets/images/gallery/Crew Cut.jpeg'
 import frenchCropImg from '../../assets/images/gallery/French Crop.jpeg'
 import undercutImg from '../../assets/images/gallery/Undercut.jpeg'
 import '../../styles/services/Services.css'
+import { fetchServices, subscribeToServices } from '../../services/servicesService'
 
-const haircutServices = [
+const DEFAULT_SERVICES = [
   { name: 'Taper Fade', image: taperFadeImg },
   { name: 'Buzz Cut', image: buzzCutImg },
   { name: 'Crew Cut', image: crewCutImg },
@@ -15,29 +16,66 @@ const haircutServices = [
   { name: 'Undercut', image: undercutImg }
 ]
 
-const extendedServices = [...haircutServices, ...haircutServices]
-
 function Services() {
+  const [servicesList, setServicesList] = useState(DEFAULT_SERVICES)
   const [currentServiceIndex, setCurrentServiceIndex] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
 
+  // Fetch live services from Supabase and subscribe to updates
+  useEffect(() => {
+    let isMounted = true
+
+    const loadLiveServices = async () => {
+      try {
+        const data = await fetchServices()
+        if (isMounted && data && data.length > 0) {
+          const activeOnly = data.filter((s) => s.status === 'Active')
+          if (activeOnly.length > 0) {
+            setServicesList(activeOnly)
+          }
+        }
+      } catch (err) {
+        console.error('Error loading services in homepage carousel:', err)
+      }
+    }
+
+    loadLiveServices()
+
+    const unsubscribe = subscribeToServices((updatedList) => {
+      if (isMounted && updatedList) {
+        const activeOnly = updatedList.filter((s) => s.status === 'Active')
+        if (activeOnly.length > 0) {
+          setServicesList(activeOnly)
+        }
+      }
+    })
+
+    return () => {
+      isMounted = false
+      unsubscribe()
+    }
+  }, [])
+
+  const effectiveServices = servicesList.length > 0 ? servicesList : DEFAULT_SERVICES
+  const extendedServices = [...effectiveServices, ...effectiveServices]
+
   const handlePrevService = () => {
     setCurrentServiceIndex((prev) =>
-      prev === 0 ? haircutServices.length - 1 : prev - 1
+      prev === 0 ? effectiveServices.length - 1 : prev - 1
     )
   }
 
   const handleNextService = () => {
-    setCurrentServiceIndex((prev) => (prev + 1) % haircutServices.length)
+    setCurrentServiceIndex((prev) => (prev + 1) % effectiveServices.length)
   }
 
   useEffect(() => {
-    if (isPaused) return
+    if (isPaused || effectiveServices.length <= 1) return
     const interval = setInterval(() => {
-      handleNextService()
+      setCurrentServiceIndex((prev) => (prev + 1) % effectiveServices.length)
     }, 3000)
     return () => clearInterval(interval)
-  }, [isPaused])
+  }, [isPaused, effectiveServices.length])
 
   return (
     <section id="services" className="services-section">
@@ -66,7 +104,7 @@ function Services() {
             type="button"
             className="carousel-arrow left-arrow"
             onClick={handlePrevService}
-            aria-label="Previous Haircut"
+            aria-label="Previous Service"
           >
             &#10094;
           </button>
@@ -85,6 +123,9 @@ function Services() {
                       src={item.image}
                       alt={item.name}
                       className="haircut-img"
+                      onError={(e) => {
+                        e.currentTarget.src = taperFadeImg
+                      }}
                     />
                   </div>
                   <div className="haircut-name-badge">
@@ -99,7 +140,7 @@ function Services() {
             type="button"
             className="carousel-arrow right-arrow"
             onClick={handleNextService}
-            aria-label="Next Haircut"
+            aria-label="Next Service"
           >
             &#10095;
           </button>

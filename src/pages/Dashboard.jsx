@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import '../styles/Dashboard.css'
 import Appointment from './appointment/Appointment'
 import BarbersCrew from './barberscrew/BarbersCrew'
@@ -25,6 +25,31 @@ function Dashboard({ onBackToSite, user, appointments, onUpdateAppointment }) {
   const [selectedAgeMonth, setSelectedAgeMonth] = useState('Month')
   const [searchQuery, setSearchQuery] = useState('')
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [newAppointmentAlert, setNewAppointmentAlert] = useState(null)
+
+  // Track pending appointments count for the sidebar badge
+  const pendingAppointments = (appointments || []).filter(
+    (a) => (a.status || '').toLowerCase() === 'pending'
+  )
+  const pendingCount = pendingAppointments.length
+
+  // Real-time detection when a new appointment is booked by a client
+  const prevAppointmentsLengthRef = useRef(appointments?.length || 0)
+
+  useEffect(() => {
+    const currentLen = appointments?.length || 0
+    if (currentLen > prevAppointmentsLengthRef.current && prevAppointmentsLengthRef.current > 0) {
+      const newest = appointments[0]
+      if (newest) {
+        setNewAppointmentAlert(newest)
+        const timer = setTimeout(() => {
+          setNewAppointmentAlert(null)
+        }, 7000)
+        return () => clearTimeout(timer)
+      }
+    }
+    prevAppointmentsLengthRef.current = currentLen
+  }, [appointments])
 
   const handleLogout = () => {
     setIsLoggingOut(true)
@@ -169,10 +194,22 @@ function Dashboard({ onBackToSite, user, appointments, onUpdateAppointment }) {
 
             <button
               className={`sidebar-btn ${activeNav === 'appointment' ? 'active' : ''}`}
-              onClick={() => handleNavClick('appointment')}
+              onClick={() => {
+                handleNavClick('appointment')
+                setNewAppointmentAlert(null)
+              }}
+              style={{ position: 'relative' }}
             >
               <span className="sidebar-btn-icon">📅</span>
-              <span>Appointment</span>
+              <span style={{ flex: 1, textAlign: 'left' }}>Appointment</span>
+              {pendingCount > 0 && (
+                <span
+                  className="sidebar-appointment-badge"
+                  title={`${pendingCount} pending booking${pendingCount > 1 ? 's' : ''}`}
+                >
+                  {pendingCount}
+                </span>
+              )}
             </button>
 
             <button
@@ -318,11 +355,22 @@ function Dashboard({ onBackToSite, user, appointments, onUpdateAppointment }) {
           </div>
 
           <div className="topbar-user">
-            <button className="notification-btn" aria-label="Notifications">
+            <button
+              className="notification-btn"
+              aria-label="Notifications"
+              onClick={() => {
+                handleNavClick('appointment')
+                setNewAppointmentAlert(null)
+              }}
+              title={pendingCount > 0 ? `${pendingCount} pending booking${pendingCount > 1 ? 's' : ''}` : 'No new notifications'}
+            >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                 <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
               </svg>
+              {pendingCount > 0 && (
+                <span className="topbar-notification-badge">{pendingCount}</span>
+              )}
             </button>
             <div className="user-profile">
               <img
@@ -355,7 +403,7 @@ function Dashboard({ onBackToSite, user, appointments, onUpdateAppointment }) {
           </main>
         ) : activeNav === 'client' ? (
           <main className="dashboard-content">
-            <Client />
+            <Client appointments={appointments} />
           </main>
         ) : activeNav === 'services' ? (
           <main className="dashboard-content">
@@ -679,6 +727,39 @@ function Dashboard({ onBackToSite, user, appointments, onUpdateAppointment }) {
           </main>
         )}
       </div>
+
+      {/* Real-time New Booking Popup Toast */}
+      {newAppointmentAlert && (
+        <div className="admin-appointment-alert-toast" role="alert">
+          <span className="toast-bell-icon">🔔</span>
+          <div className="toast-text-body">
+            <span className="toast-title">New Appointment Booked!</span>
+            <span className="toast-subtitle">
+              <strong>{newAppointmentAlert.customer || 'A client'}</strong> booked{' '}
+              {newAppointmentAlert.service?.name || 'a service'} for{' '}
+              {newAppointmentAlert.time || 'requested time'}
+            </span>
+          </div>
+          <button
+            type="button"
+            className="toast-view-btn"
+            onClick={() => {
+              setNewAppointmentAlert(null)
+              handleNavClick('appointment')
+            }}
+          >
+            View
+          </button>
+          <button
+            type="button"
+            className="toast-close-btn"
+            onClick={() => setNewAppointmentAlert(null)}
+            aria-label="Dismiss alert"
+          >
+            ✕
+          </button>
+        </div>
+      )}
     </div>
   )
 }

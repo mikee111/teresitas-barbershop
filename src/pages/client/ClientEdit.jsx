@@ -2,20 +2,20 @@ import { useState } from 'react'
 import '../../styles/SharedAdminTable.css'
 
 function ClientEdit({ client, onClose, onSave }) {
-  if (!client) return null
-
   // Split existing full name into first and last name
-  const nameParts = client.name.trim().split(' ')
+  const nameParts = (client?.name || '').trim().split(' ')
   const defaultFirstName = nameParts[0] || ''
   const defaultLastName = nameParts.slice(1).join(' ') || ''
 
   const [formData, setFormData] = useState({
     firstName: defaultFirstName,
     lastName: defaultLastName,
-    contact: client.contact || '',
-    email: client.email || '',
-    status: client.status || 'Active',
+    contact: client?.contact || '',
+    email: client?.email || '',
+    status: client?.status || 'Active',
   })
+
+  if (!client) return null
 
   const handleChange = (e) => {
     const { name, value } = e.target

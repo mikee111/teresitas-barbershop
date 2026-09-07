@@ -82,11 +82,14 @@ function Appointment({ appointments = [], onUpdateAppointment }) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [openMenuId])
 
-  const filteredAppointments = adminAppointments.filter((a) =>
-    a.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    a.service.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    a.barber.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  // Active table: only Pending + Confirmed
+  const activeAppointments = adminAppointments
+    .filter((a) => a.status === 'Pending' || a.status === 'Confirmed')
+    .filter((a) =>
+      a.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      a.service.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      a.barber.toLowerCase().includes(searchTerm.toLowerCase())
+    )
 
   const getActionsForStatus = (status) => {
     if (status === 'Completed' || status === 'Cancelled') {
@@ -219,6 +222,9 @@ function Appointment({ appointments = [], onUpdateAppointment }) {
     >
       <div className="appointment-table-titlebar">
         <h2>Appointment Schedule</h2>
+        <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.75)', fontWeight: 500 }}>
+          {activeAppointments.length} active
+        </span>
       </div>
 
       <div style={{ padding: '0.8rem 1.25rem 0.2rem' }}>
@@ -247,14 +253,14 @@ function Appointment({ appointments = [], onUpdateAppointment }) {
             </tr>
           </thead>
           <tbody>
-            {filteredAppointments.length === 0 ? (
+            {activeAppointments.length === 0 ? (
               <tr>
                 <td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
-                  No appointments found matching your search.
+                  No active appointments found.
                 </td>
               </tr>
             ) : (
-              filteredAppointments.map((appointment) => (
+              activeAppointments.map((appointment) => (
                 <tr key={appointment.id}>
                   <td>
                     <div className="bc-barber-cell">
@@ -269,10 +275,8 @@ function Appointment({ appointments = [], onUpdateAppointment }) {
                     <div className="bc-status-cell">
                       <span
                         className={`bc-status-dot ${
-                          appointment.status === 'Confirmed' || appointment.status === 'Completed'
+                          appointment.status === 'Confirmed'
                             ? 'bc-dot-active'
-                            : appointment.status === 'Cancelled'
-                            ? 'bc-dot-inactive'
                             : 'bc-dot-pending'
                         }`}
                       />

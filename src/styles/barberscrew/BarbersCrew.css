@@ -51,3 +51,35 @@
 .bc-action-deactivate { color: #dc2626; }
 .bc-action-activate   { color: #111827; font-weight: 700; }
 .appointment-actions-dropdown-item.bc-action-edit.inactive-edit { color: #2563eb; }
+
+/* Add Barber Header Button */
+.services-btn-add,
+.barbers-btn-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: #ffffff;
+  color: #1b5e20;
+  border: none;
+  padding: 0.45rem 0.95rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  transition: all 0.15s ease;
+}
+
+.services-btn-add:hover,
+.barbers-btn-add:hover {
+  background: #f0fdf4;
+  color: #15803d;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transform: translateY(-1px);
+}
+
+.services-btn-add:active,
+.barbers-btn-add:active {
+  transform: scale(0.98);
+}
+

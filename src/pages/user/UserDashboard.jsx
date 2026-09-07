@@ -4,16 +4,14 @@ import '../../styles/UserDashboard.css'
 import BookAppointment from './BookAppointment'
 import MyAppointments from './MyAppointments'
 import MyProfile from './MyProfile'
+import UserServices from './UserServices'
 import {
-  dashboardSidebarIcon,
   logoutIcon,
   lowFadeImg,
   servicesScissorIcon,
-  barbersIconsImg,
   reviewIcon,
   adminProfileIcon
 } from '../../assets/images'
-
 
 function UserDashboard({ user, onLogout, onUserUpdate, appointments = [], onUpdateAppointment, onAddAppointment }) {
   const [activeNav, setActiveNav] = useState('my-appointments')
@@ -31,7 +29,8 @@ function UserDashboard({ user, onLogout, onUserUpdate, appointments = [], onUpda
   const pageTitles = {
     dashboard: 'Client Dashboard',
     appointment: 'Book Appointment',
-    'my-appointments': 'My Appointments',
+    services: 'Services & Pricing',
+
     profile: 'My Profile'
   }
 
@@ -85,24 +84,6 @@ function UserDashboard({ user, onLogout, onUserUpdate, appointments = [], onUpda
           </div>
 
           <nav className="sidebar-menu">
-            {/* Dashboard Overview */}
-            <button
-              className={`sidebar-btn ${activeNav === 'dashboard' ? 'active' : ''}`}
-              onClick={() => setActiveNav('dashboard')}
-            >
-              {dashboardSidebarIcon ? (
-                <img
-                  src={dashboardSidebarIcon}
-                  alt="Dashboard"
-                  className="sidebar-btn-img"
-                  onError={(e) => { e.currentTarget.style.display = 'none' }}
-                />
-              ) : (
-                <span className="sidebar-btn-icon">🏠</span>
-              )}
-              <span>Dashboard</span>
-            </button>
-
             {/* My Appointments (with count badge) */}
             <button
               className={`sidebar-btn ${activeNav === 'my-appointments' ? 'active' : ''}`}
@@ -119,7 +100,8 @@ function UserDashboard({ user, onLogout, onUserUpdate, appointments = [], onUpda
               ) : (
                 <span className="sidebar-btn-icon">📋</span>
               )}
-              <span>My Appointments</span>
+              <span>Appointments</span>
+
               {upcomingCount > 0 && (
                 <span
                   style={{
@@ -135,6 +117,36 @@ function UserDashboard({ user, onLogout, onUserUpdate, appointments = [], onUpda
                   {upcomingCount}
                 </span>
               )}
+            </button>
+
+            {/* Book Appointment */}
+            <button
+              className={`sidebar-btn ${activeNav === 'appointment' ? 'active' : ''}`}
+              onClick={() => {
+                setRebookData(null)
+                setActiveNav('appointment')
+              }}
+            >
+              <span className="sidebar-btn-icon">📅</span>
+              <span>Book Appointment</span>
+            </button>
+
+            {/* Services */}
+            <button
+              className={`sidebar-btn ${activeNav === 'services' ? 'active' : ''}`}
+              onClick={() => setActiveNav('services')}
+            >
+              {servicesScissorIcon ? (
+                <img
+                  src={servicesScissorIcon}
+                  alt="Services"
+                  className="sidebar-btn-img"
+                  onError={(e) => { e.currentTarget.style.display = 'none' }}
+                />
+              ) : (
+                <span className="sidebar-btn-icon">✂️</span>
+              )}
+              <span>Services</span>
             </button>
 
             {/* My Profile */}
@@ -153,18 +165,6 @@ function UserDashboard({ user, onLogout, onUserUpdate, appointments = [], onUpda
                 <span className="sidebar-btn-icon">👤</span>
               )}
               <span>My Profile</span>
-            </button>
-
-            {/* Book Appointment */}
-            <button
-              className={`sidebar-btn ${activeNav === 'appointment' ? 'active' : ''}`}
-              onClick={() => {
-                setRebookData(null)
-                setActiveNav('appointment')
-              }}
-            >
-              <span className="sidebar-btn-icon">📅</span>
-              <span>Book Appointment</span>
             </button>
           </nav>
         </div>
@@ -192,7 +192,7 @@ function UserDashboard({ user, onLogout, onUserUpdate, appointments = [], onUpda
       <div className="dashboard-main">
         {/* Top Header Bar */}
         <header className="dashboard-topbar">
-          <h1 className="topbar-page-title">{pageTitles[activeNav] || 'Dashboard'}</h1>
+          <h1 className="topbar-page-title">{pageTitles[activeNav] || ''}</h1>
 
           <div className="dashboard-search">
             <input
@@ -243,7 +243,26 @@ function UserDashboard({ user, onLogout, onUserUpdate, appointments = [], onUpda
 
         {/* Content Area */}
         <main className={`dashboard-content client-dashboard-content${activeNav === 'profile' ? ' client-dashboard-content--profile' : ''}`}>
-          {activeNav === 'my-appointments' ? (
+          {activeNav === 'appointment' ? (
+            <BookAppointment
+              initialBookingData={rebookData}
+              onBookingComplete={handleBookingComplete}
+            />
+          ) : activeNav === 'services' ? (
+            <UserServices
+              onSelectServiceToBook={(service) => {
+                setRebookData({
+                  service,
+                  barber: null,
+                  date: 'Aug 25, 2026',
+                  time: ''
+                })
+                setActiveNav('appointment')
+              }}
+            />
+          ) : activeNav === 'profile' ? (
+            <MyProfile user={user} onUpdateUser={onUserUpdate} />
+          ) : (
             <MyAppointments
               appointments={appointments}
               onNavigateToBook={() => {
@@ -253,46 +272,6 @@ function UserDashboard({ user, onLogout, onUserUpdate, appointments = [], onUpda
               onUpdateAppointment={handleUpdateAppointment}
               onRebook={handleRebook}
             />
-          ) : activeNav === 'profile' ? (
-            <MyProfile user={user} onUpdateUser={onUserUpdate} />
-          ) : activeNav === 'appointment' ? (
-            <BookAppointment
-              initialBookingData={rebookData}
-              onBookingComplete={handleBookingComplete}
-            />
-          ) : (
-            /* Dashboard Home / Overview */
-            <div className="client-empty-canvas">
-              <div className="client-empty-canvas-inner" style={{ maxWidth: '520px' }}>
-                <div className="client-empty-icon-wrap">💈</div>
-                <h2 className="client-empty-title">Welcome back, {clientName}!</h2>
-                <p className="client-empty-desc">
-                  Manage your scheduled haircuts, pick your favorite barbers, track your grooming history, or book your next visit anytime.
-                </p>
-
-                <div style={{ display: 'flex', gap: '0.85rem', marginTop: '1.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-                  <button
-                    type="button"
-                    className="book-btn-next"
-                    onClick={() => {
-                      setRebookData(null)
-                      setActiveNav('appointment')
-                    }}
-                  >
-                    📅 Book an Appointment
-                  </button>
-
-                  <button
-                    type="button"
-                    className="my-appts-btn my-appts-btn-outline"
-                    style={{ padding: '0.75rem 1.25rem', fontSize: '0.92rem', borderRadius: '12px' }}
-                    onClick={() => setActiveNav('my-appointments')}
-                  >
-                    📋 View My Appointments ({upcomingCount})
-                  </button>
-                </div>
-              </div>
-            </div>
           )}
         </main>
       </div>

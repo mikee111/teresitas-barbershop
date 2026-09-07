@@ -3,8 +3,7 @@ import '../../styles/MyAppointments.css'
 import {
   servicesScissorIcon,
   barbersIconsImg,
-  timeIcon,
-  reviewIcon
+  timeIcon
 } from '../../assets/images'
 
 const TIME_SLOTS = [

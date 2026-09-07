@@ -36,6 +36,11 @@ function ViewBarber({ barber, onClose, inline = false }) {
           </div>
 
           <div className="barber-view-row">
+            <span className="barber-view-label">Specialty</span>
+            <span className="barber-view-val">{barber.specialty || 'General Barbering'}</span>
+          </div>
+
+          <div className="barber-view-row">
             <span className="barber-view-label">Phone</span>
             <span className="barber-view-val">{barber.phone || '0917 123 4567'}</span>
           </div>

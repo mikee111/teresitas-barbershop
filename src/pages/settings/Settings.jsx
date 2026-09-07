@@ -4,7 +4,7 @@ import BusinessInfo from './BusinessInfo'
 import SecuritySettings from './SecuritySettings'
 import AdminSettings from './AdminSettings'
 
-function Settings({ activeSubNav = 'business-info', onSelectSubNav }) {
+function Settings({ activeSubNav = 'business-info', _onSelectSubNav }) {
   if (activeSubNav === 'business-info') {
     return <BusinessInfo />
   }

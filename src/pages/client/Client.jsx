@@ -1,13 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import '../../styles/SharedAdminTable.css'
 import '../../styles/Client/Client.css'
 import ClientHistory from './ClientHistory'
 import ClientEdit from './ClientEdit'
 import ClientAdd from './ClientAdd'
+import { fetchRegisteredClients, subscribeToUsers } from '../../services/authService'
 
 const initialClientsData = [
   {
-    id: 1,
+    id: 'mock-1',
     name: 'Juan Dela Cruz',
     contact: '0912-345-6789',
     totalVisits: 8,
@@ -15,13 +16,13 @@ const initialClientsData = [
     totalSpent: '₱1,200',
     status: 'Active',
     history: [
-      { id: 101, date: 'Aug 15, 2026', service: 'Haircut', barber: 'Mark', price: '₱150' },
-      { id: 102, date: 'Aug 05, 2026', service: 'Beard Trim', barber: 'John', price: '₱100' },
-      { id: 103, date: 'Jul 28, 2026', service: 'Haircut + Beard', barber: 'Mark', price: '₱250' },
+      { id: 'h-101', date: 'Aug 15, 2026', service: 'Haircut', barber: 'Mark Reyes', price: '₱150' },
+      { id: 'h-102', date: 'Aug 05, 2026', service: 'Beard Trim', barber: 'John Carlio', price: '₱100' },
+      { id: 'h-103', date: 'Jul 28, 2026', service: 'Haircut + Beard', barber: 'Mark Reyes', price: '₱250' },
     ],
   },
   {
-    id: 2,
+    id: 'mock-2',
     name: 'Pedro Santos',
     contact: '0998-765-4321',
     totalVisits: 3,
@@ -29,13 +30,13 @@ const initialClientsData = [
     totalSpent: '₱500',
     status: 'Active',
     history: [
-      { id: 201, date: 'Aug 10, 2026', service: 'Haircut', barber: 'Luis', price: '₱180' },
-      { id: 202, date: 'Jul 15, 2026', service: 'Beard Trim', barber: 'Pedro', price: '₱120' },
-      { id: 203, date: 'Jun 20, 2026', service: 'Haircut', barber: 'Luis', price: '₱200' },
+      { id: 'h-201', date: 'Aug 10, 2026', service: 'Haircut', barber: 'Luis Santos', price: '₱180' },
+      { id: 'h-202', date: 'Jul 15, 2026', service: 'Beard Trim', barber: 'Pedro Santos', price: '₱120' },
+      { id: 'h-203', date: 'Jun 20, 2026', service: 'Haircut', barber: 'Luis Santos', price: '₱200' },
     ],
   },
   {
-    id: 3,
+    id: 'mock-3',
     name: 'Mark Reyes',
     contact: '0917-222-3333',
     totalVisits: 5,
@@ -43,20 +44,51 @@ const initialClientsData = [
     totalSpent: '₱850',
     status: 'Active',
     history: [
-      { id: 301, date: 'Aug 12, 2026', service: 'Buzz Cut', barber: 'Marco', price: '₱180' },
-      { id: 302, date: 'Jul 22, 2026', service: 'Taper Fade', barber: 'Marco', price: '₱250' },
-      { id: 303, date: 'Jul 02, 2026', service: 'Crew Cut', barber: 'Antonio', price: '₱200' },
+      { id: 'h-301', date: 'Aug 12, 2026', service: 'Buzz Cut', barber: 'Marco Cruz', price: '₱180' },
+      { id: 'h-302', date: 'Jul 22, 2026', service: 'Taper Fade', barber: 'Marco Cruz', price: '₱250' },
+      { id: 'h-303', date: 'Jul 02, 2026', service: 'Crew Cut', barber: 'Antonio', price: '₱200' },
     ],
   },
 ]
 
-function Client() {
-  const [clients, setClients] = useState(initialClientsData)
+function Client({ appointments = [] }) {
+  const [dbUsers, setDbUsers] = useState([])
+  const [customClients, setCustomClients] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [openMenuId, setOpenMenuId] = useState(null)
   const [activeHistoryClient, setActiveHistoryClient] = useState(null)
   const [editClient, setEditClient] = useState(null)
   const [showAddModal, setShowAddModal] = useState(false)
+
+  // Fetch registered users from Supabase and subscribe to real-time additions
+  useEffect(() => {
+    let isMounted = true
+
+    const loadUsers = async () => {
+      try {
+        const data = await fetchRegisteredClients()
+        if (isMounted && data) {
+          setDbUsers(data)
+        }
+      } catch (err) {
+        console.error('Failed to fetch users for clients list:', err)
+      }
+    }
+
+    loadUsers()
+
+    // Real-time subscription to newly registered clients
+    const unsubscribe = subscribeToUsers((updatedUsers) => {
+      if (isMounted && updatedUsers) {
+        setDbUsers(updatedUsers)
+      }
+    })
+
+    return () => {
+      isMounted = false
+      unsubscribe()
+    }
+  }, [])
 
   useEffect(() => {
     if (openMenuId === null) return undefined
@@ -71,7 +103,114 @@ function Client() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [openMenuId])
 
-  const filteredClients = clients.filter(
+  // Merge registered users, appointments, and custom clients into a dynamic clients array
+  const computedClients = useMemo(() => {
+    // Collect all base client identities
+    const clientMap = new Map()
+
+    // 1. Add base initial clients
+    initialClientsData.forEach((c) => {
+      clientMap.set(c.name.toLowerCase(), { ...c })
+    })
+
+    // 2. Add registered users from Supabase
+    dbUsers.forEach((u) => {
+      const first = u.first_name || u.firstName || ''
+      const last = u.last_name || u.lastName || ''
+      const fullName = `${first} ${last}`.trim() || u.name || u.username || 'User'
+      const key = fullName.toLowerCase()
+      if (!clientMap.has(key)) {
+        clientMap.set(key, {
+          id: u.id,
+          name: fullName,
+          contact: u.contact || u.email || '—',
+          totalVisits: 0,
+          lastVisit: '—',
+          totalSpent: '₱0',
+          status: 'Active',
+          history: []
+        })
+      } else {
+        const existing = clientMap.get(key)
+        if (u.contact) existing.contact = u.contact
+      }
+    })
+
+    // 3. Add clients from appointments who might not have registered yet
+    appointments.forEach((appt) => {
+      const customerName = (appt.customer || '').trim()
+      if (!customerName) return
+      const key = customerName.toLowerCase()
+      if (!clientMap.has(key)) {
+        clientMap.set(key, {
+          id: `appt-client-${customerName}`,
+          name: customerName,
+          contact: '—',
+          totalVisits: 0,
+          lastVisit: '—',
+          totalSpent: '₱0',
+          status: 'Active',
+          history: []
+        })
+      }
+    })
+
+    // 4. Add custom added clients
+    customClients.forEach((c) => {
+      clientMap.set(c.name.toLowerCase(), { ...c })
+    })
+
+    // 5. For each client, link their completed appointments from the database
+    const result = Array.from(clientMap.values()).map((client) => {
+      const clientNameLower = client.name.toLowerCase()
+
+      // Find all completed appointments matching this client
+      const completedBookings = appointments.filter((appt) => {
+        const apptCustomer = (appt.customer || '').toLowerCase()
+        const isMatch = apptCustomer === clientNameLower || apptCustomer.includes(clientNameLower) || clientNameLower.includes(apptCustomer)
+        const isCompleted = (appt.status || '').toLowerCase() === 'completed'
+        return isMatch && isCompleted
+      })
+
+      // Map completed bookings into history records
+      const dbHistory = completedBookings.map((b) => ({
+        id: b.id || b.refCode,
+        date: b.date || 'Recent',
+        time: b.time || '',
+        service: b.service?.name || (typeof b.service === 'string' ? b.service : 'Haircut'),
+        barber: b.barber?.name || (typeof b.barber === 'string' ? b.barber : 'Barber'),
+        price: typeof b.price === 'number' ? `₱${b.price.toLocaleString()}` : b.price || '₱0'
+      }))
+
+      // Combine base mock history and real DB history (avoiding duplicate ids)
+      const baseHistory = client.history || []
+      const existingIds = new Set(baseHistory.map((h) => String(h.id)))
+      const newHistory = dbHistory.filter((h) => !existingIds.has(String(h.id)))
+      const allHistory = [...newHistory, ...baseHistory]
+
+      // Calculate total visits and total spent
+      const totalVisits = allHistory.length
+      const lastVisit = allHistory[0]?.date || client.lastVisit || '—'
+
+      const totalSpentNum = allHistory.reduce((sum, item) => {
+        const raw = String(item.price || '0').replace(/[₱,\s]/g, '')
+        const val = parseFloat(raw)
+        return sum + (isNaN(val) ? 0 : val)
+      }, 0)
+
+      return {
+        ...client,
+        totalVisits,
+        lastVisit,
+        totalSpent: `₱${totalSpentNum.toLocaleString()}`,
+        history: allHistory
+      }
+    })
+
+    return result
+  }, [appointments, dbUsers, customClients])
+
+  const filteredClients = computedClients.filter(
     (c) =>
       c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.contact.toLowerCase().includes(searchTerm.toLowerCase())
@@ -84,19 +223,23 @@ function Client() {
     } else if (actionName === 'Edit Profile') {
       setEditClient(client)
     } else if (actionName === 'Deactivate Client') {
-      setClients((prev) =>
-        prev.map((c) => (c.id === client.id ? { ...c, status: 'Inactive' } : c))
-      )
+      setCustomClients((prev) => [
+        ...prev.filter((c) => c.name.toLowerCase() !== client.name.toLowerCase()),
+        { ...client, status: 'Inactive' }
+      ])
     }
   }
 
   const handleSaveEdit = (updatedClient) => {
-    setClients((prev) => prev.map((c) => (c.id === updatedClient.id ? updatedClient : c)))
+    setCustomClients((prev) => [
+      ...prev.filter((c) => c.id !== updatedClient.id && c.name.toLowerCase() !== updatedClient.name.toLowerCase()),
+      updatedClient
+    ])
     setEditClient(null)
   }
 
   const handleAddClient = (newClient) => {
-    setClients((prev) => [...prev, newClient])
+    setCustomClients((prev) => [...prev, newClient])
     setShowAddModal(false)
   }
 

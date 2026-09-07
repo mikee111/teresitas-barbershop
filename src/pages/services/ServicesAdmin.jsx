@@ -1,89 +1,19 @@
 import { useEffect, useState } from 'react'
 import '../../styles/SharedAdminTable.css'
 import '../../styles/services/ServicesAdmin.css'
-import taperFadeImg from '../../assets/images/gallery/Taper Fade.jpeg'
-import buzzCutImg from '../../assets/images/gallery/Buzz Cut.jpg'
-import crewCutImg from '../../assets/images/gallery/Crew Cut.jpeg'
-import frenchCropImg from '../../assets/images/gallery/French Crop.jpeg'
-import undercutImg from '../../assets/images/gallery/Undercut.jpeg'
-import scissorCutImg from '../../assets/images/gallery/Scissor Cut.jpg'
-import lowFadeImg from '../../assets/images/gallery/Low Fade.jpeg'
-
-const initialServicesData = [
-  {
-    id: 1,
-    name: 'Taper Fade',
-    category: 'Haircut',
-    price: '₱250',
-    duration: '45 mins',
-    status: 'Active',
-    description: 'Clean fade with seamless blend on sides and back, scissor styled top.',
-    image: taperFadeImg,
-  },
-  {
-    id: 2,
-    name: 'Buzz Cut',
-    category: 'Haircut',
-    price: '₱180',
-    duration: '30 mins',
-    status: 'Active',
-    description: 'Even length all over with clean edge lineup.',
-    image: buzzCutImg,
-  },
-  {
-    id: 3,
-    name: 'Crew Cut',
-    category: 'Haircut',
-    price: '₱200',
-    duration: '35 mins',
-    status: 'Active',
-    description: 'Classic tapered short cut, styled neatly at the top.',
-    image: crewCutImg,
-  },
-  {
-    id: 4,
-    name: 'French Crop',
-    category: 'Haircut',
-    price: '₱250',
-    duration: '40 mins',
-    status: 'Active',
-    description: 'Modern textured crop with blunt fringe and tapered fade sides.',
-    image: frenchCropImg,
-  },
-  {
-    id: 5,
-    name: 'Undercut',
-    category: 'Haircut',
-    price: '₱250',
-    duration: '45 mins',
-    status: 'Active',
-    description: 'Short sides and back with distinct long top contrast.',
-    image: undercutImg,
-  },
-  {
-    id: 6,
-    name: 'Beard Trim & Shave',
-    category: 'Beard & Shave',
-    price: '₱150',
-    duration: '25 mins',
-    status: 'Active',
-    description: 'Precision beard shaping and hot towel razor line detailing.',
-    image: scissorCutImg,
-  },
-  {
-    id: 7,
-    name: 'Hair Treatment & Wash',
-    category: 'Hair Care',
-    price: '₱300',
-    duration: '50 mins',
-    status: 'Inactive',
-    description: 'Deep conditioning scalp wash with relaxing head massage.',
-    image: lowFadeImg,
-  },
-]
+import {
+  fetchServices,
+  createService,
+  updateService,
+  updateServiceStatus,
+  subscribeToServices,
+  INITIAL_DEFAULT_SERVICES,
+} from '../../services/servicesService'
 
 function ServicesAdmin() {
-  const [services, setServices] = useState(initialServicesData)
+  const [services, setServices] = useState(INITIAL_DEFAULT_SERVICES)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [openMenuId, setOpenMenuId] = useState(null)
   const [activeViewService, setActiveViewService] = useState(null)
@@ -98,8 +28,42 @@ function ServicesAdmin() {
     duration: '30 mins',
     description: '',
     status: 'Active',
+    imageUrl: '',
   })
 
+  // Load services and subscribe to real-time updates
+  useEffect(() => {
+    let isMounted = true
+
+    const loadData = async () => {
+      try {
+        const data = await fetchServices()
+        if (isMounted && data) {
+          setServices(data)
+        }
+      } catch (err) {
+        console.error('Error fetching services in ServicesAdmin:', err)
+      } finally {
+        if (isMounted) setIsLoading(false)
+      }
+    }
+
+    loadData()
+
+    // Real-time subscription (Supabase postgres_changes + local event broadcast)
+    const unsubscribe = subscribeToServices((updatedList) => {
+      if (isMounted && updatedList) {
+        setServices(updatedList)
+      }
+    })
+
+    return () => {
+      isMounted = false
+      unsubscribe()
+    }
+  }, [])
+
+  // Close actions dropdown menu when clicking outside
   useEffect(() => {
     if (openMenuId === null) return undefined
 
@@ -114,11 +78,11 @@ function ServicesAdmin() {
   }, [openMenuId])
 
   const filteredServices = services.filter((s) =>
-    s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.category.toLowerCase().includes(searchTerm.toLowerCase())
+    (s.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (s.category || '').toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const handleActionClick = (action, service) => {
+  const handleActionClick = async (action, service) => {
     setOpenMenuId(null)
     if (action === 'View') {
       setActiveEditService(null)
@@ -132,8 +96,9 @@ function ServicesAdmin() {
         category: service.category,
         price: service.price,
         duration: service.duration,
-        description: service.description || '',
+        description: service.description || service.desc || '',
         status: service.status,
+        imageUrl: service.imageUrl || service.image_url || '',
       })
       setActiveEditService(service)
     } else if (action === 'Deactivate') {
@@ -141,65 +106,95 @@ function ServicesAdmin() {
       setActiveEditService(null)
       setActiveDeactivateService(service)
     } else if (action === 'Activate') {
+      try {
+        const updated = await updateServiceStatus(service.id, 'Active')
+        setServices((prev) =>
+          prev.map((s) => (s.id === service.id ? { ...s, ...updated, status: 'Active' } : s))
+        )
+      } catch (err) {
+        console.error('Failed to activate service:', err)
+      }
+    }
+  }
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault()
+    if (!activeEditService || isSaving) return
+    setIsSaving(true)
+
+    try {
+      const updated = await updateService(activeEditService.id, {
+        name: formData.name,
+        category: formData.category,
+        price: formData.price.startsWith('₱') ? formData.price : `₱${formData.price}`,
+        duration: formData.duration,
+        description: formData.description,
+        status: formData.status,
+        imageUrl: formData.imageUrl,
+      })
+
       setServices((prev) =>
-        prev.map((s) => (s.id === service.id ? { ...s, status: 'Active' } : s))
+        prev.map((s) => (s.id === activeEditService.id ? { ...s, ...updated } : s))
       )
+      setActiveEditService(null)
+    } catch (err) {
+      console.error('Failed to update service:', err)
+    } finally {
+      setIsSaving(false)
     }
   }
 
-  const handleSaveEdit = (e) => {
+  const handleCreateService = async (e) => {
     e.preventDefault()
-    if (!activeEditService) return
-    setServices((prev) =>
-      prev.map((s) =>
-        s.id === activeEditService.id
-          ? {
-              ...s,
-              name: formData.name,
-              category: formData.category,
-              price: formData.price.startsWith('₱') ? formData.price : `₱${formData.price}`,
-              duration: formData.duration,
-              description: formData.description,
-              status: formData.status,
-            }
-          : s
-      )
-    )
-    setActiveEditService(null)
-  }
+    if (isSaving) return
+    setIsSaving(true)
 
-  const handleCreateService = (e) => {
-    e.preventDefault()
-    const newService = {
-      id: Date.now(),
-      name: formData.name || 'New Service',
-      category: formData.category,
-      price: formData.price.startsWith('₱') ? formData.price : `₱${formData.price}`,
-      duration: formData.duration,
-      description: formData.description,
-      status: formData.status,
-      image: taperFadeImg,
+    try {
+      const created = await createService({
+        name: formData.name || 'New Service',
+        category: formData.category,
+        price: formData.price.startsWith('₱') ? formData.price : `₱${formData.price}`,
+        duration: formData.duration,
+        description: formData.description,
+        status: formData.status,
+        imageUrl: formData.imageUrl,
+      })
+
+      setServices((prev) => [created, ...prev.filter((s) => s.id !== created.id)])
+      setIsAddingNew(false)
+      setFormData({
+        name: '',
+        category: 'Haircut',
+        price: '₱200',
+        duration: '30 mins',
+        description: '',
+        status: 'Active',
+        imageUrl: '',
+      })
+    } catch (err) {
+      console.error('Failed to create service:', err)
+    } finally {
+      setIsSaving(false)
     }
-    setServices((prev) => [newService, ...prev])
-    setIsAddingNew(false)
-    setFormData({
-      name: '',
-      category: 'Haircut',
-      price: '₱200',
-      duration: '30 mins',
-      description: '',
-      status: 'Active',
-    })
   }
 
-  const handleConfirmDeactivate = () => {
-    if (!activeDeactivateService) return
-    setServices((prev) =>
-      prev.map((s) =>
-        s.id === activeDeactivateService.id ? { ...s, status: 'Inactive' } : s
+  const handleConfirmDeactivate = async () => {
+    if (!activeDeactivateService || isSaving) return
+    setIsSaving(true)
+
+    try {
+      const updated = await updateServiceStatus(activeDeactivateService.id, 'Inactive')
+      setServices((prev) =>
+        prev.map((s) =>
+          s.id === activeDeactivateService.id ? { ...s, ...updated, status: 'Inactive' } : s
+        )
       )
-    )
-    setActiveDeactivateService(null)
+      setActiveDeactivateService(null)
+    } catch (err) {
+      console.error('Failed to deactivate service:', err)
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const isModalOpen =
@@ -223,6 +218,7 @@ function ServicesAdmin() {
               duration: '30 mins',
               description: '',
               status: 'Active',
+              imageUrl: '',
             })
             setIsAddingNew(true)
           }}
@@ -257,7 +253,13 @@ function ServicesAdmin() {
             </tr>
           </thead>
           <tbody>
-            {filteredServices.length === 0 ? (
+            {isLoading && services.length === 0 ? (
+              <tr>
+                <td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+                  Loading services...
+                </td>
+              </tr>
+            ) : filteredServices.length === 0 ? (
               <tr>
                 <td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
                   No services found matching your search.
@@ -273,15 +275,26 @@ function ServicesAdmin() {
                           src={service.image}
                           alt={service.name}
                           className="service-cell-img"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none'
+                          }}
                         />
                       ) : (
                         <div className="service-cell-icon">✂️</div>
                       )}
                       <div className="service-cell-info">
                         <span className="service-cell-name">{service.name}</span>
-                        {service.description && (
-                          <span className="service-cell-category" style={{ maxWidth: '240px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {service.description}
+                        {(service.description || service.desc) && (
+                          <span
+                            className="service-cell-category"
+                            style={{
+                              maxWidth: '240px',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                            }}
+                          >
+                            {service.description || service.desc}
                           </span>
                         )}
                       </div>
@@ -417,7 +430,7 @@ function ServicesAdmin() {
                 <div className="service-view-row" style={{ flexDirection: 'column', gap: '0.4rem' }}>
                   <span className="service-view-label">Description</span>
                   <span style={{ fontSize: '0.88rem', color: '#4b5563', lineHeight: '1.4' }}>
-                    {activeViewService.description || 'No description provided.'}
+                    {activeViewService.description || activeViewService.desc || 'No description provided.'}
                   </span>
                 </div>
               </div>
@@ -541,6 +554,20 @@ function ServicesAdmin() {
                 </div>
 
                 <div className="service-form-group full-width">
+                  <label htmlFor="service-image-url">Image URL (Optional)</label>
+                  <input
+                    id="service-image-url"
+                    type="url"
+                    value={formData.imageUrl}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, imageUrl: e.target.value }))
+                    }
+                    className="service-form-input"
+                    placeholder="https://... or leave empty for default style icon"
+                  />
+                </div>
+
+                <div className="service-form-group full-width">
                   <label htmlFor="service-desc">Description</label>
                   <textarea
                     id="service-desc"
@@ -563,11 +590,16 @@ function ServicesAdmin() {
                     setActiveEditService(null)
                     setIsAddingNew(false)
                   }}
+                  disabled={isSaving}
                 >
                   Cancel
                 </button>
-                <button type="submit" className="service-btn-submit">
-                  {isAddingNew ? 'Create Service' : 'Save Changes'}
+                <button type="submit" className="service-btn-submit" disabled={isSaving}>
+                  {isSaving
+                    ? 'Saving...'
+                    : isAddingNew
+                    ? 'Create Service'
+                    : 'Save Changes'}
                 </button>
               </div>
             </form>
@@ -585,6 +617,7 @@ function ServicesAdmin() {
                 type="button"
                 className="service-modal-close"
                 onClick={() => setActiveDeactivateService(null)}
+                disabled={isSaving}
               >
                 ✕
               </button>
@@ -600,6 +633,7 @@ function ServicesAdmin() {
                   type="button"
                   className="service-btn-cancel"
                   onClick={() => setActiveDeactivateService(null)}
+                  disabled={isSaving}
                 >
                   Cancel
                 </button>
@@ -608,8 +642,9 @@ function ServicesAdmin() {
                   className="service-btn-submit"
                   style={{ background: '#dc2626' }}
                   onClick={handleConfirmDeactivate}
+                  disabled={isSaving}
                 >
-                  Yes, Deactivate
+                  {isSaving ? 'Deactivating...' : 'Yes, Deactivate'}
                 </button>
               </div>
             </div>

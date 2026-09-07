@@ -8,6 +8,15 @@ const positionOptions = [
   'Master Barber',
 ]
 
+const scheduleOptions = [
+  'Monday - Saturday',
+  'Tuesday - Sunday',
+  'Monday - Friday',
+  'Wednesday - Monday',
+  'Thursday - Tuesday',
+  'Everyday (Mon - Sun)',
+]
+
 const timeOptions = [
   '8:00 AM',
   '8:30 AM',
@@ -28,31 +37,20 @@ const timeOptions = [
   '8:00 PM',
 ]
 
-const scheduleOptions = [
-  'Monday - Saturday',
-  'Tuesday - Sunday',
-  'Monday - Friday',
-  'Wednesday - Monday',
-  'Thursday - Tuesday',
-  'Everyday (Mon - Sun)',
-]
-
-function EditBarber({ barber, onClose, onSave, inline = false }) {
+function AddBarber({ onClose, onSave, inline = false }) {
   const [formData, setFormData] = useState({
-    name: barber?.name || '',
-    phone: barber?.phone || '0917 123 4567',
-    email: barber?.email || `${(barber?.name || 'barber').toLowerCase().replace(/\s+/g, '')}@email.com`,
-    position: barber?.position || 'Barber',
-    specialty: barber?.specialty || 'General Barbering',
-    schedule: barber?.schedule || 'Monday - Saturday',
-    status: barber?.status || 'Active',
-    startTime: barber?.startTime || '9:00 AM',
-    endTime: barber?.endTime || '6:00 PM',
+    name: '',
+    position: 'Barber',
+    specialty: 'Fade Specialist',
+    phone: '',
+    email: '',
+    schedule: 'Monday - Saturday',
+    startTime: '9:00 AM',
+    endTime: '6:00 PM',
+    status: 'Active',
   })
 
-  if (!barber) {
-    return null
-  }
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -62,27 +60,35 @@ function EditBarber({ barber, onClose, onSave, inline = false }) {
     }))
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    onSave({
-      ...barber,
-      name: formData.name,
-      phone: formData.phone,
-      email: formData.email,
-      position: formData.position,
-      specialty: formData.specialty,
-      schedule: formData.schedule,
-      status: formData.status,
-      startTime: formData.startTime,
-      endTime: formData.endTime,
-      hours: `${formData.startTime} - ${formData.endTime}`,
-    })
+    if (!formData.name.trim()) return
+
+    setIsSubmitting(true)
+    try {
+      await onSave({
+        name: formData.name.trim(),
+        position: formData.position,
+        specialty: formData.specialty.trim() || 'General Barbering',
+        phone: formData.phone.trim() || '0917 123 4567',
+        email:
+          formData.email.trim() ||
+          `${formData.name.toLowerCase().replace(/\s+/g, '')}@email.com`,
+        schedule: formData.schedule,
+        startTime: formData.startTime,
+        endTime: formData.endTime,
+        hours: `${formData.startTime} - ${formData.endTime}`,
+        status: formData.status,
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const content = (
     <div className={`barber-edit-shell${inline ? ' barber-edit-panel--inline' : ''}`}>
       <div className="barber-edit-titlebar">
-        <h2>Edit Barber</h2>
+        <h2>Add New Barber</h2>
         <button
           type="button"
           className="barber-edit-close-x"
@@ -97,27 +103,29 @@ function EditBarber({ barber, onClose, onSave, inline = false }) {
         <div className="barber-edit-grid">
           {/* Full Name */}
           <div className="barber-edit-field">
-            <label htmlFor="name" className="barber-edit-label">
-              Full Name
+            <label htmlFor="add-barber-name" className="barber-edit-label">
+              Full Name *
             </label>
             <input
-              id="name"
+              id="add-barber-name"
               name="name"
               type="text"
               className="barber-edit-input"
+              placeholder="e.g. Antonio Santos"
               value={formData.name}
               onChange={handleChange}
               required
+              autoFocus
             />
           </div>
 
           {/* Position */}
           <div className="barber-edit-field">
-            <label htmlFor="position" className="barber-edit-label">
+            <label htmlFor="add-barber-position" className="barber-edit-label">
               Position
             </label>
             <select
-              id="position"
+              id="add-barber-position"
               name="position"
               className="barber-edit-select"
               value={formData.position}
@@ -133,11 +141,11 @@ function EditBarber({ barber, onClose, onSave, inline = false }) {
 
           {/* Specialty */}
           <div className="barber-edit-field">
-            <label htmlFor="specialty" className="barber-edit-label">
+            <label htmlFor="add-barber-specialty" className="barber-edit-label">
               Specialty / Skills
             </label>
             <input
-              id="specialty"
+              id="add-barber-specialty"
               name="specialty"
               type="text"
               className="barber-edit-input"
@@ -149,11 +157,11 @@ function EditBarber({ barber, onClose, onSave, inline = false }) {
 
           {/* Status */}
           <div className="barber-edit-field">
-            <label htmlFor="status" className="barber-edit-label">
+            <label htmlFor="add-barber-status" className="barber-edit-label">
               Status
             </label>
             <select
-              id="status"
+              id="add-barber-status"
               name="status"
               className="barber-edit-select"
               value={formData.status}
@@ -166,14 +174,15 @@ function EditBarber({ barber, onClose, onSave, inline = false }) {
 
           {/* Phone */}
           <div className="barber-edit-field">
-            <label htmlFor="phone" className="barber-edit-label">
-              Phone
+            <label htmlFor="add-barber-phone" className="barber-edit-label">
+              Phone Number *
             </label>
             <input
-              id="phone"
+              id="add-barber-phone"
               name="phone"
-              type="text"
+              type="tel"
               className="barber-edit-input"
+              placeholder="e.g. 0917 123 4567"
               value={formData.phone}
               onChange={handleChange}
               required
@@ -182,27 +191,27 @@ function EditBarber({ barber, onClose, onSave, inline = false }) {
 
           {/* Email */}
           <div className="barber-edit-field">
-            <label htmlFor="email" className="barber-edit-label">
-              Email
+            <label htmlFor="add-barber-email" className="barber-edit-label">
+              Email Address
             </label>
             <input
-              id="email"
+              id="add-barber-email"
               name="email"
               type="email"
               className="barber-edit-input"
+              placeholder="e.g. barber@email.com"
               value={formData.email}
               onChange={handleChange}
-              required
             />
           </div>
 
           {/* Schedule / Working Days */}
           <div className="barber-edit-field full-width">
-            <label htmlFor="schedule" className="barber-edit-label">
+            <label htmlFor="add-barber-schedule" className="barber-edit-label">
               Working Days
             </label>
             <select
-              id="schedule"
+              id="add-barber-schedule"
               name="schedule"
               className="barber-edit-select"
               value={formData.schedule}
@@ -257,14 +266,16 @@ function EditBarber({ barber, onClose, onSave, inline = false }) {
             type="button"
             className="barber-edit-btn barber-edit-btn-cancel"
             onClick={onClose}
+            disabled={isSubmitting}
           >
             Cancel
           </button>
           <button
             type="submit"
             className="barber-edit-btn barber-edit-btn-save"
+            disabled={isSubmitting}
           >
-            Save Changes
+            {isSubmitting ? 'Adding...' : 'Add Barber'}
           </button>
         </div>
       </form>
@@ -278,4 +289,4 @@ function EditBarber({ barber, onClose, onSave, inline = false }) {
   return <div className="appointment-modal-overlay">{content}</div>
 }
 
-export default EditBarber
+export default AddBarber

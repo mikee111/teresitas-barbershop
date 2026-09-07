@@ -8,13 +8,15 @@ function ClientHistory({ client, onBack }) {
 
   // Calculate totals from history
   const totalSpent = historyItems.reduce((sum, item) => {
-    const num = parseFloat(item.price.replace('₱', '').replace(',', ''))
+    const rawPrice = item.price !== undefined && item.price !== null ? String(item.price) : '0'
+    const num = parseFloat(rawPrice.replace(/[₱,\s]/g, ''))
     return sum + (isNaN(num) ? 0 : num)
   }, 0)
 
   // Find most frequent barber
   const barberCount = historyItems.reduce((acc, item) => {
-    acc[item.barber] = (acc[item.barber] || 0) + 1
+    const bName = item.barber || 'Unassigned'
+    acc[bName] = (acc[bName] || 0) + 1
     return acc
   }, {})
   const favoriteBarber = Object.keys(barberCount).sort((a, b) => barberCount[b] - barberCount[a])[0] || '—'

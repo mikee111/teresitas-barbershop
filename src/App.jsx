@@ -14,6 +14,13 @@ import {
   createAppointmentApi,
   updateAppointmentApi
 } from './services/appointmentService'
+import supabase from './config/supabase'
+import {
+  getCurrentSession,
+  saveSession,
+  logoutUser,
+  updateUserProfile
+} from './services/authService'
 
 const INITIAL_SHARED_APPOINTMENTS = [
   {
@@ -68,8 +75,13 @@ const INITIAL_SHARED_APPOINTMENTS = [
 
 function App() {
   const [isLoginOpen, setIsLoginOpen] = useState(false)
-  const [currentView, setCurrentView] = useState('website') // 'website' | 'dashboard' | 'user-dashboard'
-  const [currentUser, setCurrentUser] = useState(null)
+  const [currentUser, setCurrentUser] = useState(() => getCurrentSession())
+  const [currentView, setCurrentView] = useState(() => {
+    const session = getCurrentSession()
+    if (session?.role === 'admin') return 'dashboard'
+    if (session?.role === 'user') return 'user-dashboard'
+    return 'website'
+  })
 
   // ── Single shared appointments state ────────────────────────
   const [sharedAppointments, setSharedAppointments] = useState(() => {
@@ -77,16 +89,57 @@ function App() {
     return saved ? JSON.parse(saved) : INITIAL_SHARED_APPOINTMENTS
   })
 
-  // Sync with backend API on mount
+  // Sync with backend API on mount + cross-tab & realtime subscriptions
   useEffect(() => {
+    let isMounted = true
     const loadBackendData = async () => {
       const data = await fetchAppointments()
-      if (data && Array.isArray(data) && data.length > 0) {
+      if (isMounted && data && Array.isArray(data) && data.length > 0) {
         setSharedAppointments(data)
         localStorage.setItem('tb_appointments', JSON.stringify(data))
       }
     }
     loadBackendData()
+
+    // 1. Cross-tab listener for instant multi-tab notification
+    const handleStorage = (e) => {
+      if (e.key === 'tb_appointments' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue)
+          if (Array.isArray(parsed)) {
+            setSharedAppointments(parsed)
+          }
+        } catch (err) {
+          console.error('Cross-tab sync error:', err)
+        }
+      }
+    }
+    window.addEventListener('storage', handleStorage)
+
+    // 2. Realtime Supabase channel
+    const channel = supabase
+      .channel('realtime-appointments-channel')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'appointments' },
+        async () => {
+          const data = await fetchAppointments()
+          if (isMounted && data && Array.isArray(data)) {
+            setSharedAppointments(data)
+          }
+        }
+      )
+      .subscribe()
+
+    // 3. Heartbeat polling fallback (every 8s)
+    const pollTimer = setInterval(loadBackendData, 8000)
+
+    return () => {
+      isMounted = false
+      window.removeEventListener('storage', handleStorage)
+      supabase.removeChannel(channel)
+      clearInterval(pollTimer)
+    }
   }, [])
 
   // Save to localStorage whenever sharedAppointments changes
@@ -116,6 +169,7 @@ function App() {
   }
 
   const handleLoginSuccess = (userData) => {
+    saveSession(userData)
     setCurrentUser(userData)
     setIsLoginOpen(false)
     if (userData.role === 'admin') {
@@ -127,9 +181,22 @@ function App() {
 
   // Logout: clear session and return to landing page
   const handleLogout = () => {
+    logoutUser()
     setCurrentUser(null)
     setCurrentView('website')
     setIsLoginOpen(false)
+  }
+
+  const handleUserUpdate = async (updates) => {
+    setCurrentUser((prev) => {
+      if (!prev) return prev
+      const updated = { ...prev, ...updates }
+      saveSession(updated)
+      return updated
+    })
+    if (currentUser?.id || currentUser?.email) {
+      await updateUserProfile(currentUser.id || currentUser.email, updates)
+    }
   }
 
   // ── Admin Dashboard ─────────────────────────────────────────
@@ -150,9 +217,7 @@ function App() {
       <UserDashboard
         user={currentUser}
         onLogout={handleLogout}
-        onUserUpdate={(updates) =>
-          setCurrentUser((prev) => (prev ? { ...prev, ...updates } : prev))
-        }
+        onUserUpdate={handleUserUpdate}
         appointments={sharedAppointments}
         onUpdateAppointment={handleUpdateSharedAppointment}
         onAddAppointment={handleAddSharedAppointment}

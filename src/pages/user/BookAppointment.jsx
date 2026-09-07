@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import '../../styles/BookAppointment.css'
 import {
   servicesScissorIcon,
@@ -6,42 +6,72 @@ import {
   timeIcon,
   reviewIcon
 } from '../../assets/images'
+import {
+  fetchServices,
+  subscribeToServices,
+  parsePriceNumber,
+} from '../../services/servicesService'
 
-const SERVICES_DATA = [
+const FALLBACK_SERVICES = [
   {
     id: 1,
-    name: 'Hair Cut',
-    desc: 'Classic haircut with wash and style',
-    price: 15.00,
+    name: 'Taper Fade',
+    desc: 'Clean fade with seamless blend on sides and back, scissor styled top.',
+    description: 'Clean fade with seamless blend on sides and back, scissor styled top.',
+    price: '₱250',
+    priceValue: 250,
+    status: 'Active',
     icon: '✂️'
   },
   {
     id: 2,
-    name: 'Beard Trim',
-    desc: 'Beard shaping and grooming',
-    price: 10.00,
-    icon: '🧔'
+    name: 'Buzz Cut',
+    desc: 'Even length all over with clean edge lineup.',
+    description: 'Even length all over with clean edge lineup.',
+    price: '₱180',
+    priceValue: 180,
+    status: 'Active',
+    icon: '✂️'
   },
   {
     id: 3,
-    name: 'Hair & Beard Combo',
-    desc: 'Haircut and beard trim combo',
-    price: 22.00,
+    name: 'Crew Cut',
+    desc: 'Classic tapered short cut, styled neatly at the top.',
+    description: 'Classic tapered short cut, styled neatly at the top.',
+    price: '₱200',
+    priceValue: 200,
+    status: 'Active',
     icon: '✂️'
   },
   {
     id: 4,
-    name: 'Scissor Cut',
-    desc: 'Premium scissor haircut',
-    price: 20.00,
+    name: 'French Crop',
+    desc: 'Modern textured crop with blunt fringe and tapered fade sides.',
+    description: 'Modern textured crop with blunt fringe and tapered fade sides.',
+    price: '₱250',
+    priceValue: 250,
+    status: 'Active',
     icon: '✂️'
   },
   {
     id: 5,
-    name: 'Hair Color',
-    desc: 'Hair coloring service',
-    price: 30.00,
-    icon: '💧'
+    name: 'Undercut',
+    desc: 'Short sides and back with distinct long top contrast.',
+    description: 'Short sides and back with distinct long top contrast.',
+    price: '₱250',
+    priceValue: 250,
+    status: 'Active',
+    icon: '✂️'
+  },
+  {
+    id: 6,
+    name: 'Beard Trim & Shave',
+    desc: 'Precision beard shaping and hot towel razor line detailing.',
+    description: 'Precision beard shaping and hot towel razor line detailing.',
+    price: '₱150',
+    priceValue: 150,
+    status: 'Active',
+    icon: '🧔'
   }
 ]
 
@@ -115,15 +145,70 @@ function getUpcomingDays() {
 
 function BookAppointment({ onBookingComplete, initialBookingData }) {
   const [currentStep, setCurrentStep] = useState(initialBookingData ? 2 : 1)
-  const [selectedService, setSelectedService] = useState(initialBookingData?.service || SERVICES_DATA[0])
+  const [servicesList, setServicesList] = useState(FALLBACK_SERVICES)
+  const [isLoadingServices, setIsLoadingServices] = useState(true)
+  const [selectedService, setSelectedService] = useState(initialBookingData?.service || FALLBACK_SERVICES[0])
   const [selectedBarber, setSelectedBarber] = useState(initialBookingData?.barber || null)
   const [selectedDate, setSelectedDate] = useState(initialBookingData?.date || 'Aug 25, 2026')
   const [selectedTime, setSelectedTime] = useState(initialBookingData?.time || '')
   const [isSuccessOpen, setIsSuccessOpen] = useState(false)
 
+  // Fetch real-time services from Supabase / servicesService
+  useEffect(() => {
+    let isMounted = true
+
+    const loadLiveServices = async () => {
+      try {
+        const data = await fetchServices()
+        if (isMounted && data && data.length > 0) {
+          const activeOnly = data.filter((s) => s.status === 'Active')
+          setServicesList(activeOnly)
+          
+          // If initial service was passed or already selected, match with live service if possible
+          setSelectedService((prev) => {
+            if (!prev) return activeOnly[0] || null
+            const match = activeOnly.find((s) => s.id === prev.id || s.name === prev.name)
+            return match || prev || activeOnly[0] || null
+          })
+        }
+      } catch (err) {
+        console.error('Error loading services in BookAppointment:', err)
+      } finally {
+        if (isMounted) setIsLoadingServices(false)
+      }
+    }
+
+    loadLiveServices()
+
+    // Real-time updates subscription
+    const unsubscribe = subscribeToServices((updatedList) => {
+      if (isMounted && updatedList) {
+        const activeOnly = updatedList.filter((s) => s.status === 'Active')
+        setServicesList(activeOnly)
+
+        // Maintain selection or update price if selected service was modified
+        setSelectedService((prev) => {
+          if (!prev) return activeOnly[0] || null
+          const match = activeOnly.find((s) => s.id === prev.id || s.name === prev.name)
+          return match || activeOnly[0] || null
+        })
+      }
+    })
+
+    return () => {
+      isMounted = false
+      unsubscribe()
+    }
+  }, [])
+
   const daysList = getUpcomingDays()
 
-  const totalPrice = selectedService ? selectedService.price : 0.00
+  // Calculate numeric total price
+  const totalPrice = selectedService
+    ? (typeof selectedService.priceValue === 'number'
+        ? selectedService.priceValue
+        : parsePriceNumber(selectedService.price))
+    : 0
 
   const handleNext = () => {
     if (currentStep === 1 && !selectedService) return
@@ -160,83 +245,85 @@ function BookAppointment({ onBookingComplete, initialBookingData }) {
     }
   }
 
-  const isNextDisabled = () => {
-    if (currentStep === 1 && !selectedService) return true
-    if (currentStep === 2 && !selectedBarber) return true
-    if (currentStep === 3 && !selectedDate) return true
-    if (currentStep === 4 && !selectedTime) return true
-    return false
-  }
-
   return (
-    <div className="book-appointment-container">
-      {/* ── Page Header ───────────────────────────────────── */}
-      <div className="book-header">
-        <h1 className="book-title">Book Appointment</h1>
-        <p className="book-subtitle">Schedule your next visit</p>
-      </div>
-
-      {/* ── Stepper Navigation Bar ─────────────────────────── */}
-      <div className="book-stepper-card">
+    <div className="book-appointment-wrapper">
+      {/* ── Progress Wizard Steps Header ─────────────────── */}
+      <div className="book-stepper-container">
         <ol className="book-stepper-list">
-          {/* Step 1 */}
+          {/* Step 1: Service */}
           <li
-            className={`book-step-item ${currentStep === 1 ? 'active' : currentStep > 1 ? 'completed' : ''}`}
+            className={`book-step-item ${currentStep === 1 ? 'active' : ''} ${
+              currentStep > 1 ? 'completed' : ''
+            }`}
             onClick={() => setCurrentStep(1)}
           >
             <div className="book-step-circle">
-              <img src={servicesScissorIcon} alt="Service" className="book-step-circle-img" />
+              {servicesScissorIcon ? (
+                <img src={servicesScissorIcon} alt="Service" className="book-step-circle-img" />
+              ) : (
+                '1'
+              )}
             </div>
             <span className="book-step-label">1. Service</span>
           </li>
 
-          <div className="book-step-arrow">›</div>
+          <div className={`book-step-line ${currentStep > 1 ? 'completed' : ''}`} />
 
-          {/* Step 2 */}
+          {/* Step 2: Barber */}
           <li
-            className={`book-step-item ${currentStep === 2 ? 'active' : currentStep > 2 ? 'completed' : ''}`}
-            onClick={() => { if (selectedService) setCurrentStep(2) }}
+            className={`book-step-item ${currentStep === 2 ? 'active' : ''} ${
+              currentStep > 2 ? 'completed' : ''
+            }`}
+            onClick={() => selectedService && setCurrentStep(2)}
           >
             <div className="book-step-circle">
-              <img src={barbersIconsImg} alt="Barber" className="book-step-circle-img" style={{ borderRadius: '50%' }} />
+              {barbersIconsImg ? (
+                <img src={barbersIconsImg} alt="Barber" className="book-step-circle-img" />
+              ) : (
+                '2'
+              )}
             </div>
             <span className="book-step-label">2. Barber</span>
           </li>
 
-          <div className="book-step-arrow">›</div>
+          <div className={`book-step-line ${currentStep > 2 ? 'completed' : ''}`} />
 
-          {/* Step 3 */}
+          {/* Step 3: Date */}
           <li
-            className={`book-step-item ${currentStep === 3 ? 'active' : currentStep > 3 ? 'completed' : ''}`}
-            onClick={() => { if (selectedBarber) setCurrentStep(3) }}
+            className={`book-step-item ${currentStep === 3 ? 'active' : ''} ${
+              currentStep > 3 ? 'completed' : ''
+            }`}
+            onClick={() => selectedBarber && setCurrentStep(3)}
           >
             <div className="book-step-circle">📅</div>
             <span className="book-step-label">3. Date</span>
           </li>
 
-          <div className="book-step-arrow">›</div>
+          <div className={`book-step-line ${currentStep > 3 ? 'completed' : ''}`} />
 
-          {/* Step 4 */}
+          {/* Step 4: Time */}
           <li
-            className={`book-step-item ${currentStep === 4 ? 'active' : currentStep > 4 ? 'completed' : ''}`}
-            onClick={() => { if (selectedDate) setCurrentStep(4) }}
+            className={`book-step-item ${currentStep === 4 ? 'active' : ''} ${
+              currentStep > 4 ? 'completed' : ''
+            }`}
+            onClick={() => selectedDate && setCurrentStep(4)}
           >
             <div className="book-step-circle">
               {timeIcon ? (
                 <img src={timeIcon} alt="Time" className="book-step-circle-img" />
               ) : (
-                '🕒'
+                '4'
               )}
             </div>
             <span className="book-step-label">4. Time</span>
           </li>
 
-          <div className="book-step-arrow">›</div>
+          <div className={`book-step-line ${currentStep > 4 ? 'completed' : ''}`} />
 
-          {/* Step 5 */}
+          {/* Step 5: Review */}
           <li
             className={`book-step-item ${currentStep === 5 ? 'active' : ''}`}
-            onClick={() => { if (selectedTime) setCurrentStep(5) }}
+            onClick={() => selectedTime && setCurrentStep(5)}
           >
             <div className="book-step-circle">
               {reviewIcon ? (
@@ -263,37 +350,54 @@ function BookAppointment({ onBookingComplete, initialBookingData }) {
               </div>
 
               <div className="book-options-list">
-                {SERVICES_DATA.map((service) => {
-                  const isSelected = selectedService?.id === service.id
-                  return (
-                    <div
-                      key={service.id}
-                      className={`book-service-card ${isSelected ? 'selected' : ''}`}
-                      onClick={() => setSelectedService(service)}
-                    >
-                      <div className="book-service-left">
-                        <div className="book-radio-circle">
-                          {isSelected && <div className="book-radio-dot" />}
+                {isLoadingServices && servicesList.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
+                    Loading real-time services...
+                  </div>
+                ) : servicesList.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
+                    No active services currently available.
+                  </div>
+                ) : (
+                  servicesList.map((service) => {
+                    const isSelected = selectedService?.id === service.id || selectedService?.name === service.name
+                    const displayPrice = service.price || `₱${service.priceValue || service.price_value}`
+
+                    return (
+                      <div
+                        key={service.id}
+                        className={`book-service-card ${isSelected ? 'selected' : ''}`}
+                        onClick={() => setSelectedService(service)}
+                      >
+                        <div className="book-service-left">
+                          <div className="book-radio-circle">
+                            {isSelected && <div className="book-radio-dot" />}
+                          </div>
+
+                          <div className="book-service-icon-box">
+                            <img
+                              src={service.image || servicesScissorIcon}
+                              alt={service.name}
+                              className="book-service-img-icon"
+                              onError={(e) => {
+                                e.currentTarget.src = servicesScissorIcon
+                              }}
+                            />
+                          </div>
+
+                          <div className="book-service-meta">
+                            <span className="book-service-name">{service.name}</span>
+                            <span className="book-service-desc">
+                              {service.description || service.desc || `${service.category} • ${service.duration}`}
+                            </span>
+                          </div>
                         </div>
 
-                        <div className="book-service-icon-box">
-                          <img
-                            src={servicesScissorIcon}
-                            alt={service.name}
-                            className="book-service-img-icon"
-                          />
-                        </div>
-
-                        <div className="book-service-meta">
-                          <span className="book-service-name">{service.name}</span>
-                          <span className="book-service-desc">{service.desc}</span>
-                        </div>
+                        <span className="book-service-price">{displayPrice}</span>
                       </div>
-
-                      <span className="book-service-price">${service.price.toFixed(2)}</span>
-                    </div>
-                  )
-                })}
+                    )
+                  })
+                )}
               </div>
             </>
           )}
@@ -379,14 +483,13 @@ function BookAppointment({ onBookingComplete, initialBookingData }) {
                   {TIME_SLOTS.map((time) => {
                     const isSelected = selectedTime === time
                     return (
-                      <button
+                      <div
                         key={time}
-                        type="button"
-                        className={`book-time-slot-btn ${isSelected ? 'selected' : ''}`}
+                        className={`book-time-btn ${isSelected ? 'selected' : ''}`}
                         onClick={() => setSelectedTime(time)}
                       >
                         {time}
-                      </button>
+                      </div>
                     )
                   })}
                 </div>
@@ -399,53 +502,58 @@ function BookAppointment({ onBookingComplete, initialBookingData }) {
             <>
               <div className="book-panel-header">
                 <h2 className="book-panel-title">Review Your Booking</h2>
-                <p className="book-panel-subtitle">Please verify your appointment details before confirming.</p>
+                <p className="book-panel-subtitle">
+                  Please check your appointment details before confirming.
+                </p>
               </div>
 
-              <div className="book-review-card">
-                <div className="book-review-row">
+              <div className="book-review-list">
+                <div className="book-review-card">
                   <span className="book-review-label">Service</span>
-                  <span className="book-review-val">{selectedService?.name} (${selectedService?.price.toFixed(2)})</span>
-                </div>
-                <div className="book-review-row">
-                  <span className="book-review-label">Barber</span>
-                  <span className="book-review-val">{selectedBarber?.name} ({selectedBarber?.role})</span>
-                </div>
-                <div className="book-review-row">
-                  <span className="book-review-label">Date &amp; Time</span>
-                  <span className="book-review-val">{selectedDate} at {selectedTime}</span>
-                </div>
-                <div className="book-review-row">
-                  <span className="book-review-label">Payment Method</span>
-                  <span className="book-review-val">Pay in Barbershop (Cash / Card)</span>
-                </div>
-                <div className="book-review-row">
-                  <span className="book-review-label">Total Amount</span>
-                  <span className="book-review-val" style={{ color: '#7c3aed', fontSize: '1.15rem' }}>
-                    ${totalPrice.toFixed(2)}
+                  <span className="book-review-val">{selectedService?.name}</span>
+                  <span className="book-review-sub">
+                    {selectedService?.duration || '30 mins'} • {selectedService?.price || `₱${selectedService?.priceValue}`}
                   </span>
+                </div>
+
+                <div className="book-review-card">
+                  <span className="book-review-label">Barber</span>
+                  <span className="book-review-val">{selectedBarber?.name}</span>
+                  <span className="book-review-sub">{selectedBarber?.role}</span>
+                </div>
+
+                <div className="book-review-card">
+                  <span className="book-review-label">Date & Time</span>
+                  <span className="book-review-val">
+                    {selectedDate} at {selectedTime}
+                  </span>
+                  <span className="book-review-sub">Please arrive 10 minutes prior</span>
+                </div>
+
+                <div className="book-review-card">
+                  <span className="book-review-label">Total Amount</span>
+                  <span className="book-review-val" style={{ color: '#047857', fontWeight: 700 }}>
+                    ₱{totalPrice.toLocaleString()}
+                  </span>
+                  <span className="book-review-sub">Pay at shop (Cash or E-Wallet)</span>
                 </div>
               </div>
             </>
           )}
 
-          {/* Action Buttons Footer */}
-          <div className="book-actions-footer">
+          {/* Bottom Step Navigation Buttons */}
+          <div className="book-actions-bar">
             {currentStep > 1 && (
-              <button
-                type="button"
-                className="book-btn-back"
-                onClick={handleBack}
-              >
-                ‹ Back
+              <button type="button" className="book-btn-back" onClick={handleBack}>
+                &lt; Back
               </button>
             )}
 
             <button
               type="button"
               className="book-btn-next"
+              style={{ marginLeft: currentStep === 1 ? 'auto' : undefined }}
               onClick={handleNext}
-              disabled={isNextDisabled()}
             >
               {getStepNextButtonText()}
             </button>
@@ -519,7 +627,7 @@ function BookAppointment({ onBookingComplete, initialBookingData }) {
           {/* Total */}
           <div className="book-summary-total-row">
             <span className="book-summary-total-label">Total</span>
-            <span className="book-summary-total-price">${totalPrice.toFixed(2)}</span>
+            <span className="book-summary-total-price">₱{totalPrice.toLocaleString()}</span>
           </div>
 
           {/* Note Box */}
@@ -555,9 +663,9 @@ function BookAppointment({ onBookingComplete, initialBookingData }) {
                       barber: selectedBarber,
                       date: selectedDate,
                       time: selectedTime,
-                      price: selectedService?.price || 0,
+                      price: totalPrice,
                       status: 'pending',
-                      duration: '45 mins',
+                      duration: selectedService?.duration || '45 mins',
                       paymentMode: 'Pay at Shop (Cash / Card)',
                       requestedTime: selectedTime,
                       confirmedTime: '',
@@ -591,9 +699,9 @@ function BookAppointment({ onBookingComplete, initialBookingData }) {
                       barber: selectedBarber,
                       date: selectedDate,
                       time: selectedTime,
-                      price: selectedService?.price || 0,
+                      price: totalPrice,
                       status: 'pending',
-                      duration: '45 mins',
+                      duration: selectedService?.duration || '45 mins',
                       paymentMode: 'Pay at Shop (Cash / Card)',
                       requestedTime: selectedTime,
                       confirmedTime: '',

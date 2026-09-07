@@ -1,72 +1,16 @@
 import { useEffect, useState } from 'react'
 import '../../styles/SharedAdminTable.css'
 import '../../styles/barberscrew/BarbersCrew.css'
+import AddBarber from './AddBarber'
 import DeactivateBarber from './DeactivateBarber'
 import EditBarber from './EditBarber'
 import ViewBarber from './ViewBarber'
-
-const initialBarbersData = [
-  {
-    id: 1,
-    name: 'Juan Cruz',
-    position: 'Senior Barber',
-    status: 'Active',
-    phone: '0917 123 4567',
-    email: 'juan@email.com',
-    schedule: 'Monday - Saturday',
-    startTime: '9:00 AM',
-    endTime: '6:00 PM',
-    hours: '9:00 AM - 6:00 PM',
-  },
-  {
-    id: 2,
-    name: 'Pedro Santos',
-    position: 'Barber',
-    status: 'Active',
-    phone: '0918 234 5678',
-    email: 'pedro@email.com',
-    schedule: 'Tuesday - Sunday',
-    startTime: '9:00 AM',
-    endTime: '6:00 PM',
-    hours: '9:00 AM - 6:00 PM',
-  },
-  {
-    id: 3,
-    name: 'Carlos Reyes',
-    position: 'Barber',
-    status: 'Inactive',
-    phone: '0919 345 6789',
-    email: 'carlos@email.com',
-    schedule: 'Monday - Friday',
-    startTime: '10:00 AM',
-    endTime: '7:00 PM',
-    hours: '10:00 AM - 7:00 PM',
-  },
-  {
-    id: 4,
-    name: 'Luis Garcia',
-    position: 'Barber',
-    status: 'Active',
-    phone: '0920 456 7890',
-    email: 'luis@email.com',
-    schedule: 'Wednesday - Monday',
-    startTime: '9:00 AM',
-    endTime: '6:00 PM',
-    hours: '9:00 AM - 6:00 PM',
-  },
-  {
-    id: 5,
-    name: 'Marco Rivera',
-    position: 'Junior Barber',
-    status: 'Active',
-    phone: '0921 567 8901',
-    email: 'marco@email.com',
-    schedule: 'Monday - Saturday',
-    startTime: '8:00 AM',
-    endTime: '5:00 PM',
-    hours: '8:00 AM - 5:00 PM',
-  },
-]
+import {
+  fetchBarbers,
+  createBarber,
+  updateBarber,
+  updateBarberStatus,
+} from '../../services/barberService'
 
 const getActionsForStatus = (status) => {
   if (status === 'Active') return ['View', 'Edit', 'Deactivate']
@@ -83,12 +27,30 @@ const actionClass = (action) => {
 }
 
 function BarbersCrew() {
-  const [barbers, setBarbers] = useState(initialBarbersData)
+  const [barbers, setBarbers] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [openMenuId, setOpenMenuId] = useState(null)
+  const [showAddModal, setShowAddModal] = useState(false)
   const [activeViewId, setActiveViewId] = useState(null)
   const [activeEditId, setActiveEditId] = useState(null)
   const [activeDeactivateId, setActiveDeactivateId] = useState(null)
+
+  useEffect(() => {
+    let isMounted = true
+    const loadBarbersData = async () => {
+      setIsLoading(true)
+      const data = await fetchBarbers()
+      if (isMounted) {
+        setBarbers(data)
+        setIsLoading(false)
+      }
+    }
+    loadBarbersData()
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   useEffect(() => {
     if (openMenuId === null) return undefined
@@ -104,39 +66,52 @@ function BarbersCrew() {
   }, [openMenuId])
 
   const filteredBarbers = barbers.filter((b) =>
-    b.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    b.position.toLowerCase().includes(searchTerm.toLowerCase())
+    (b.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (b.position || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (b.specialty || '').toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const handleActionClick = (action, barber) => {
+  const handleActionClick = async (action, barber) => {
     setOpenMenuId(null)
     if (action === 'View') {
       setActiveEditId(null)
       setActiveDeactivateId(null)
+      setShowAddModal(false)
       setActiveViewId(barber.id)
     } else if (action === 'Edit') {
       setActiveViewId(null)
       setActiveDeactivateId(null)
+      setShowAddModal(false)
       setActiveEditId(barber.id)
     } else if (action === 'Deactivate') {
       setActiveViewId(null)
       setActiveEditId(null)
+      setShowAddModal(false)
       setActiveDeactivateId(barber.id)
     } else if (action === 'Activate') {
+      await updateBarberStatus(barber.id, 'Active')
       setBarbers((prev) =>
         prev.map((b) => (b.id === barber.id ? { ...b, status: 'Active' } : b))
       )
     }
   }
 
-  const handleSaveBarber = (updatedBarber) => {
+  const handleAddBarber = async (newBarberData) => {
+    const created = await createBarber(newBarberData)
+    setBarbers((prev) => [...prev, created])
+    setShowAddModal(false)
+  }
+
+  const handleSaveBarber = async (updatedBarber) => {
+    const updated = await updateBarber(updatedBarber.id, updatedBarber)
     setBarbers((prev) =>
-      prev.map((b) => (b.id === updatedBarber.id ? updatedBarber : b))
+      prev.map((b) => (b.id === updated.id ? { ...b, ...updated } : b))
     )
     setActiveEditId(null)
   }
 
-  const handleConfirmDeactivate = (barberId) => {
+  const handleConfirmDeactivate = async (barberId) => {
+    await updateBarberStatus(barberId, 'Inactive')
     setBarbers((prev) =>
       prev.map((b) => (b.id === barberId ? { ...b, status: 'Inactive' } : b))
     )
@@ -150,7 +125,8 @@ function BarbersCrew() {
   const isModalOpen =
     Boolean(selectedViewBarber) ||
     Boolean(selectedEditBarber) ||
-    Boolean(selectedDeactivateBarber)
+    Boolean(selectedDeactivateBarber) ||
+    showAddModal
 
   return (
     <div
@@ -160,6 +136,13 @@ function BarbersCrew() {
     >
       <div className="appointment-table-titlebar">
         <h2>Barbers Crew</h2>
+        <button
+          type="button"
+          className="barbers-btn-add"
+          onClick={() => setShowAddModal(true)}
+        >
+          <span>＋</span> Add Barber
+        </button>
       </div>
 
       <div style={{ padding: '0.8rem 1.25rem 0.2rem' }}>
@@ -167,7 +150,7 @@ function BarbersCrew() {
           <span style={{ color: '#94a3b8' }}>🔍</span>
           <input
             type="text"
-            placeholder="Search barber name or position..."
+            placeholder="Search barber name, position, or specialty..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="services-search-input"
@@ -187,7 +170,13 @@ function BarbersCrew() {
             </tr>
           </thead>
           <tbody>
-            {filteredBarbers.length === 0 ? (
+            {isLoading ? (
+              <tr>
+                <td colSpan="5" style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+                  Loading barbers crew...
+                </td>
+              </tr>
+            ) : filteredBarbers.length === 0 ? (
               <tr>
                 <td colSpan="5" style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
                   No barbers found matching your search.
@@ -202,7 +191,16 @@ function BarbersCrew() {
                       <span className="bc-barber-name">{barber.name}</span>
                     </div>
                   </td>
-                  <td>{barber.position}</td>
+                  <td>
+                    <div>
+                      <div>{barber.position}</div>
+                      {barber.specialty && (
+                        <div style={{ fontSize: '0.76rem', color: '#6b7280', marginTop: '2px' }}>
+                          {barber.specialty}
+                        </div>
+                      )}
+                    </div>
+                  </td>
                   <td>{barber.hours || `${barber.schedule || 'Mon-Sat'} (9:00 AM - 6:00 PM)`}</td>
                   <td>
                     <div className="bc-status-cell">
@@ -257,6 +255,13 @@ function BarbersCrew() {
           </tbody>
         </table>
       </div>
+
+      {showAddModal && (
+        <AddBarber
+          onClose={() => setShowAddModal(false)}
+          onSave={handleAddBarber}
+        />
+      )}
 
       {selectedViewBarber && (
         <ViewBarber
