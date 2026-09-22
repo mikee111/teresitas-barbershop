@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import '../../styles/SharedAdminTable.css'
-import '../../styles/Client/Client.css'
+import '../../styles/client/Client.css'
 import ClientHistory from './ClientHistory'
 import ClientEdit from './ClientEdit'
 import ClientAdd from './ClientAdd'

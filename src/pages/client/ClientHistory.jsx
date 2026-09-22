@@ -1,5 +1,5 @@
 import '../../styles/SharedAdminTable.css'
-import '../../styles/Client/Client.css'
+import '../../styles/client/Client.css'
 
 function ClientHistory({ client, onBack }) {
   if (!client) return null
