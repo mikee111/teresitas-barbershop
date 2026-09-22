@@ -105,3 +105,13 @@
     gap: 2.5rem;
   }
 }
+
+@media (max-width: 600px) {
+  .about-features {
+    grid-template-columns: 1fr;
+  }
+
+  .about-card-badge {
+    padding: 2rem 1.25rem;
+  }
+}

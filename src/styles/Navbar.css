@@ -8,8 +8,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.25rem 3rem;
-  background: rgba(13, 14, 18, 0.85);
+  padding: 1.15rem 3rem;
+  background: rgba(13, 14, 18, 0.92);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -26,6 +26,12 @@
   color: var(--text-h);
   letter-spacing: 0.05em;
   text-transform: uppercase;
+}
+
+.brand-link {
+  color: inherit;
+  text-decoration: none;
+  display: inline-block;
 }
 
 .brand-badge {
@@ -52,6 +58,7 @@
   transition: color 0.25s ease;
   cursor: pointer;
   border: none;
+  text-decoration: none;
 }
 
 .site-nav a::after {
@@ -89,12 +96,102 @@
   box-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
 }
 
-@media (max-width: 900px) {
+/* Mobile Toggle Hamburger Button */
+.mobile-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: space-around;
+  width: 32px;
+  height: 26px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 2px 0;
+  z-index: 1001;
+}
+
+.mobile-toggle .bar {
+  width: 100%;
+  height: 3px;
+  background-color: #f4f4f5;
+  border-radius: 4px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: center;
+}
+
+.mobile-toggle.open .bar:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+  background-color: var(--accent);
+}
+
+.mobile-toggle.open .bar:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+
+.mobile-toggle.open .bar:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+  background-color: var(--accent);
+}
+
+/* Responsive Styles for Mobile */
+@media (max-width: 868px) {
   .site-header {
-    padding: 1rem 1.5rem;
+    padding: 0.9rem 1.25rem;
+  }
+
+  .brand-logo {
+    font-size: 1.15rem;
+    gap: 0.5rem;
+  }
+
+  .brand-badge {
+    font-size: 1.25rem;
+  }
+
+  .mobile-toggle {
+    display: flex;
   }
 
   .site-nav {
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    background: rgba(13, 14, 18, 0.98);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-bottom: 1px solid rgba(212, 175, 55, 0.25);
+    flex-direction: column;
+    align-items: center;
     gap: 1.25rem;
+    padding: 2rem 1.5rem;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.85);
+    max-height: 0;
+    opacity: 0;
+    visibility: hidden;
+    overflow: hidden;
+    transition: max-height 0.35s ease, opacity 0.3s ease, visibility 0.3s ease;
+  }
+
+  .site-nav.nav-open {
+    max-height: 420px;
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .site-nav a,
+  .nav-login-btn {
+    font-size: 1.1rem;
+    width: 100%;
+    text-align: center;
+    padding: 0.5rem 0;
+  }
+
+  .login-btn-nav {
+    width: 85% !important;
+    max-width: 280px;
+    margin-top: 0.75rem;
+    padding: 0.75rem 1.5rem !important;
   }
 }

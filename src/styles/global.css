@@ -69,8 +69,12 @@
 }
 
 /* Page Content Base Layout */
+section[id] {
+  scroll-margin-top: 80px;
+}
+
 main {
-  padding-top: 5rem;
+  padding-top: 4.5rem;
 }
 
 .page-section {
