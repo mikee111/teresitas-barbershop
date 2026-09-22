@@ -66,9 +66,22 @@ export const INITIAL_DEFAULT_BARBERS = [
     end_time: '5:00 PM',
     hours: '8:00 AM - 5:00 PM',
   },
+  {
+    id: 6,
+    name: 'Gudencio palero',
+    position: 'Barber',
+    specialty: 'aesthitic cut all around',
+    status: 'Active',
+    phone: '0922 678 9012',
+    email: 'gudencio@email.com',
+    schedule: 'Monday - Saturday',
+    start_time: '9:00 AM',
+    end_time: '6:00 PM',
+    hours: '9:00 AM - 6:00 PM',
+  },
 ]
 
-const LOCAL_STORAGE_KEY = 'tb_barbers_crew_data'
+export const LOCAL_STORAGE_KEY = 'tb_barbers_crew_data'
 
 const getLocalBarbers = () => {
   try {
@@ -252,3 +265,41 @@ export const updateBarber = async (id, updatedFields) => {
 export const updateBarberStatus = async (id, newStatus) => {
   return updateBarber(id, { status: newStatus })
 }
+
+export const subscribeToBarbers = (callback) => {
+  if (typeof window === 'undefined') return () => {}
+
+  const handleStorage = (e) => {
+    if (e.key === LOCAL_STORAGE_KEY && e.newValue) {
+      try {
+        const parsed = JSON.parse(e.newValue)
+        if (Array.isArray(parsed)) {
+          callback(parsed)
+        }
+      } catch (err) {
+        console.error('Cross-tab barbers sync error:', err)
+      }
+    }
+  }
+  window.addEventListener('storage', handleStorage)
+
+  const channel = supabase
+    .channel('realtime-barbers-channel')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'barbers' },
+      async () => {
+        const data = await fetchBarbers()
+        if (data && Array.isArray(data)) {
+          callback(data)
+        }
+      }
+    )
+    .subscribe()
+
+  return () => {
+    window.removeEventListener('storage', handleStorage)
+    supabase.removeChannel(channel)
+  }
+}
+

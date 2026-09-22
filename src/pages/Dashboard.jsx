@@ -15,14 +15,67 @@ import businessInfoIcon from '../assets/images/gallery/Business Information .png
 import securityIcon from '../assets/images/gallery/security icons ..png'
 import adminProfileIcon from '../assets/images/gallery/admin Profile.avif'
 import logoutIcon from '../assets/images/gallery/logout.png'
+import { subscribeToUsers, fetchRegisteredClients } from '../services/authService'
 
-function Dashboard({ onBackToSite, user, appointments, onUpdateAppointment }) {
+/**
+ * Calculates smooth SVG spline path & area fill using cubic Bézier curves
+ */
+function generateSplineData(dataPoints = [], width = 600, height = 200, maxY = 50000) {
+  const padTop = 32
+  const padBottom = 26
+  const padLeft = 20
+  const padRight = 20
+
+  const plotWidth = width - padLeft - padRight
+  const plotHeight = height - padTop - padBottom
+
+  const points = dataPoints.map((dp, idx) => {
+    const x = padLeft + (idx / Math.max(1, dataPoints.length - 1)) * plotWidth
+    const clampedVal = Math.max(0, Math.min(maxY, dp.value || 0))
+    const y = padTop + plotHeight - (clampedVal / (maxY || 1)) * plotHeight
+    return { ...dp, x, y }
+  })
+
+  if (points.length === 0) return { pathD: '', areaD: '', points: [] }
+  if (points.length === 1) {
+    return {
+      pathD: `M ${points[0].x} ${points[0].y}`,
+      areaD: '',
+      points
+    }
+  }
+
+  let pathD = `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[i === 0 ? i : i - 1]
+    const p1 = points[i]
+    const p2 = points[i + 1]
+    const p3 = points[i + 2 < points.length ? i + 2 : i + 1]
+
+    const tension = 0.22
+    const cp1x = p1.x + (p2.x - p0.x) * tension
+    const cp1y = p1.y + (p2.y - p0.y) * tension
+    const cp2x = p2.x - (p3.x - p1.x) * tension
+    const cp2y = p2.y - (p3.y - p1.y) * tension
+
+    pathD += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`
+  }
+
+  const areaBottom = height - padBottom + 10
+  const areaD = `${pathD} L ${points[points.length - 1].x.toFixed(1)} ${areaBottom} L ${points[0].x.toFixed(1)} ${areaBottom} Z`
+
+  return { pathD, areaD, points }
+}
+
+function Dashboard({ onBackToSite, user, appointments, onUpdateAppointment, onUserUpdate }) {
   const [activeNav, setActiveNav] = useState('dashboard')
   const [settingsSubNav, setSettingsSubNav] = useState('business-info')
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('upcoming')
-  const [selectedYear, setSelectedYear] = useState('Year')
-  const [selectedAgeMonth, setSelectedAgeMonth] = useState('Month')
+  const [selectedYear, setSelectedYear] = useState('2026')
+  const [selectedAgeMonth, setSelectedAgeMonth] = useState('September')
+  const [chartTimeframe, setChartTimeframe] = useState('year') // 'day' | 'month' | 'year'
+  const [hoveredPointIndex, setHoveredPointIndex] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [newAppointmentAlert, setNewAppointmentAlert] = useState(null)
@@ -51,6 +104,46 @@ function Dashboard({ onBackToSite, user, appointments, onUpdateAppointment }) {
     prevAppointmentsLengthRef.current = currentLen
   }, [appointments])
 
+  // Real-time detection when a new customer registers an account
+  const [newCustomerAlert, setNewCustomerAlert] = useState(null)
+  const prevUsersCountRef = useRef(0)
+
+  useEffect(() => {
+    let isMounted = true
+
+    const initUsers = async () => {
+      try {
+        const users = await fetchRegisteredClients()
+        if (isMounted && users) {
+          prevUsersCountRef.current = users.length
+        }
+      } catch {
+        // ignore
+      }
+    }
+    initUsers()
+
+    const unsubscribe = subscribeToUsers((updatedUsers) => {
+      if (!isMounted || !updatedUsers) return
+      if (prevUsersCountRef.current > 0 && updatedUsers.length > prevUsersCountRef.current) {
+        const newest = updatedUsers[0]
+        if (newest) {
+          setNewCustomerAlert(newest)
+          const timer = setTimeout(() => {
+            if (isMounted) setNewCustomerAlert(null)
+          }, 8000)
+          return () => clearTimeout(timer)
+        }
+      }
+      prevUsersCountRef.current = updatedUsers.length
+    })
+
+    return () => {
+      isMounted = false
+      unsubscribe()
+    }
+  }, [])
+
   const handleLogout = () => {
     setIsLoggingOut(true)
     setTimeout(() => {
@@ -70,7 +163,8 @@ function Dashboard({ onBackToSite, user, appointments, onUpdateAppointment }) {
   const settingsTitles = {
     'business-info': 'Business Information',
     security: 'Security',
-    admin: 'Admin'
+    admin: 'Admin',
+    'customer-accounts': 'Customer Accounts'
   }
 
   const handleSettingsClick = () => {
@@ -94,34 +188,191 @@ function Dashboard({ onBackToSite, user, appointments, onUpdateAppointment }) {
       ? settingsTitles[settingsSubNav] || 'Settings'
       : pageTitles[activeNav] || 'Dashboard'
 
+  // Dynamic Date & Current Month calculation
+  const now = new Date()
+  const monthNamesFull = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ]
+  const monthNamesShort = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ]
+
+  const currentMonthName = monthNamesFull[now.getMonth()]
+  const currentMonthShort = monthNamesShort[now.getMonth()]
+  const currentYearNum = now.getFullYear()
+  const currentMonthLabel = `${currentMonthName} ${currentYearNum}`
+  const todayDateStr = `${currentMonthShort} ${now.getDate()}, ${currentYearNum}`
+
+  // Real-time categorization of appointments by status
+  const completedAppts = (appointments || []).filter(
+    (a) => (a.status || '').toLowerCase() === 'completed'
+  )
+  const confirmedAppts = (appointments || []).filter(
+    (a) => (a.status || '').toLowerCase() === 'confirmed'
+  )
+  const pendingAppts = (appointments || []).filter(
+    (a) => (a.status || '').toLowerCase() === 'pending'
+  )
+
+  const completedCount = completedAppts.length
+  const confirmedCount = confirmedAppts.length
+  const pendingBookingsCount = pendingAppts.length
+
+  // Real-time completed revenue from served bookings
+  const completedRevenue = completedAppts.reduce((sum, appt) => {
+    const val = typeof appt.price === 'number' ? appt.price : parseFloat(appt.price) || 0
+    return sum + val
+  }, 0)
+
+  // Filter completed appointments for today & this month
+  const todayCompletedAppts = completedAppts.filter(
+    (a) => a.date === todayDateStr || a.date?.includes(`${now.getDate()}`)
+  )
+  const todayCompletedRevenue = todayCompletedAppts.reduce(
+    (sum, a) => sum + (typeof a.price === 'number' ? a.price : parseFloat(a.price) || 0),
+    0
+  )
+
+  const monthCompletedAppts = completedAppts.filter(
+    (a) => a.date?.includes(currentMonthShort) || a.date?.includes(currentMonthName)
+  )
+  const monthCompletedRevenue = monthCompletedAppts.reduce(
+    (sum, a) => sum + (typeof a.price === 'number' ? a.price : parseFloat(a.price) || 0),
+    0
+  )
+
+  // Real-time dynamic KPI calculations:
+  // Base sales + live completed appointment revenue
+  const todaySales = 3450 + (todayCompletedRevenue > 0 ? todayCompletedRevenue : completedRevenue)
+  const monthlySales = 48200 + (monthCompletedRevenue > 0 ? monthCompletedRevenue : completedRevenue)
+  const yearlyRevenue = 320000 + completedRevenue
+
+  // Dynamic Real-time Chart Data Generator for Day | Month | Year
+  const yearDataset = [
+    { label: 'Jan', shortLabel: 'Jan', value: 24500, tag: 'January', note: 'Start of Year' },
+    { label: 'Feb', shortLabel: 'Feb', value: 22000, tag: 'February', note: 'Regular Season' },
+    { label: 'Mar', shortLabel: 'Mar', value: 28500, tag: 'March', note: 'Graduation Cuts' },
+    { label: 'Apr', shortLabel: 'Apr', value: 21200, tag: 'April', note: 'Summer Break' },
+    { label: 'May', shortLabel: 'May', value: 27000, tag: 'May', note: 'Vacation Peak' },
+    { label: 'Jun', shortLabel: 'Jun', value: 32500, tag: 'June', note: 'School Openings' },
+    { label: 'Jul', shortLabel: 'Jul', value: 19800, tag: 'July', note: 'Rainy Season Dip' },
+    { label: 'Aug', shortLabel: 'Aug', value: 25400, tag: 'August', note: 'Back to School' },
+    { label: 'Sep', shortLabel: 'Sep', value: monthlySales, tag: 'September (Current)', note: 'Live Monthly Total', isCurrent: true },
+    { label: 'Oct', shortLabel: 'Oct', value: 28000, tag: 'October', note: 'Halloween Prep' },
+    { label: 'Nov', shortLabel: 'Nov', value: 34500, tag: 'November', note: 'Pre-Holiday Boom' },
+    { label: 'Dec', shortLabel: 'Dec', value: 48600, tag: 'December (Peak)', note: 'Holiday Peak 🎄', isPeak: true }
+  ]
+
+  const monthDataset = [
+    { label: 'Day 1', shortLabel: '1', value: 1450, tag: 'Sep 1 (Mon)', note: 'Regular Day' },
+    { label: 'Day 3', shortLabel: '3', value: 2800, tag: 'Sep 3 (Wed)', note: 'Midweek Uptick' },
+    { label: 'Day 5', shortLabel: '5', value: 3600, tag: 'Sep 5 (Fri)', note: 'Weekend Rush' },
+    { label: 'Day 7', shortLabel: '7', value: 3950, tag: 'Sep 7 (Sun)', note: 'Sunday Peak' },
+    { label: 'Day 8', shortLabel: '8 (Today)', value: todaySales, tag: 'Sep 8 (Today)', note: 'Live Daily Total', isCurrent: true },
+    { label: 'Day 12', shortLabel: '12', value: 2900, tag: 'Sep 12 (Fri)', note: 'Weekend Rush' },
+    { label: 'Day 14', shortLabel: '14', value: 3750, tag: 'Sep 14 (Sun)', note: 'Sunday Peak' },
+    { label: 'Day 18', shortLabel: '18', value: 2200, tag: 'Sep 18 (Thu)', note: 'Regular Day' },
+    { label: 'Day 21', shortLabel: '21', value: 3800, tag: 'Sep 21 (Sun)', note: 'Sunday Peak' },
+    { label: 'Day 25', shortLabel: '25', value: 2450, tag: 'Sep 25 (Thu)', note: 'Payday Rush' },
+    { label: 'Day 28', shortLabel: '28', value: 3900, tag: 'Sep 28 (Sun)', note: 'Weekend Peak' },
+    { label: 'Day 30', shortLabel: '30', value: 2350, tag: 'Sep 30 (Tue)', note: 'End of Month' }
+  ]
+
+  const liveDayBonus = todayCompletedRevenue > 0 ? todayCompletedRevenue : completedRevenue
+  const dayDataset = [
+    { label: '9:00 AM', shortLabel: '9 AM', value: 450, tag: '9:00 AM', note: 'Shop Opening' },
+    { label: '11:00 AM', shortLabel: '11 AM', value: 750, tag: '11:00 AM', note: 'Morning Queue' },
+    { label: '1:00 PM', shortLabel: '1 PM', value: 1200 + Math.round(liveDayBonus * 0.4), tag: '1:00 PM', note: 'After-Lunch Rush' },
+    { label: '3:00 PM', shortLabel: '3 PM', value: 1500 + Math.round(liveDayBonus * 0.6), tag: '3:00 PM (Peak)', note: 'After-Work Rush ⚡', isPeak: true },
+    { label: '5:00 PM', shortLabel: '5 PM', value: 1100, tag: '5:00 PM', note: 'Evening Clients' },
+    { label: '7:00 PM', shortLabel: '7 PM', value: 600, tag: '7:00 PM', note: 'Closing Hours' }
+  ]
+
+  // Timeframe configurations
+  const timeframeConfig = {
+    year: {
+      title: 'Annual Revenue Analytics',
+      growthBadge: '+15.3% vs last year',
+      growthType: 'positive',
+      subtext: 'Month-by-month sales trajectory across 2026',
+      data: yearDataset,
+      maxY: 55000,
+      yAxisLabels: ['50K', '40K', '30K', '20K', '10K', '0'],
+      defaultIndex: 8 // September (Current)
+    },
+    month: {
+      title: `Monthly Revenue (${currentMonthName} 2026)`,
+      growthBadge: '+8.2% vs last month',
+      growthType: 'positive',
+      subtext: 'Daily breakdown showing weekend spikes (Fri–Sun)',
+      data: monthDataset,
+      maxY: 5000,
+      yAxisLabels: ['5K', '4K', '3K', '2K', '1K', '0'],
+      defaultIndex: 4 // Today (Day 8)
+    },
+    day: {
+      title: `Today's Peak Hours (${todayDateStr})`,
+      growthBadge: '+12.4% vs yesterday',
+      growthType: 'positive',
+      subtext: 'Hourly sales distribution (Peak: 1:00 PM – 4:00 PM)',
+      data: dayDataset,
+      maxY: 2400,
+      yAxisLabels: ['2.4K', '1.8K', '1.2K', '0.6K', '0'],
+      defaultIndex: 3 // 3:00 PM Peak
+    }
+  }
+
+  const currentTfConfig = timeframeConfig[chartTimeframe] || timeframeConfig.year
+  const splineData = generateSplineData(currentTfConfig.data, 600, 200, currentTfConfig.maxY)
+  const activeTooltipIndex = hoveredPointIndex !== null ? hoveredPointIndex : currentTfConfig.defaultIndex
+  const activePoint = splineData.points[activeTooltipIndex] || splineData.points[0]
+
   const statCardsData = [
     {
-      id: 'clients',
-      title: 'Total Clients',
-      icon: '👤',
-      value: '24'
+      id: 'today-sales',
+      title: "Today's Sales",
+      icon: '₱',
+      iconClass: 'icon-sales',
+      value: `₱${todaySales.toLocaleString()}`,
+      trend: '+12.4% vs yesterday',
+      trendType: 'positive',
+      subtext: `From completed bookings today`
     },
     {
-      id: 'services',
-      title: 'Total Services',
-      icon: '✂️',
-      value: '6'
+      id: 'monthly-sales',
+      title: 'Monthly Sales',
+      icon: '📈',
+      iconClass: 'icon-month',
+      value: `₱${monthlySales.toLocaleString()}`,
+      trend: '+8.2% vs last mo',
+      trendType: 'positive',
+      subtext: currentMonthLabel
     },
     {
-      id: 'employees',
-      title: 'Active Employees',
-      icon: '👥',
-      value: '4'
+      id: 'yearly-revenue',
+      title: 'Yearly Revenue',
+      icon: '🏦',
+      iconClass: 'icon-year',
+      value: `₱${yearlyRevenue.toLocaleString()}`,
+      trend: '+15.3% growth',
+      trendType: 'positive',
+      subtext: `${currentYearNum} Fiscal Year`
     },
     {
-      id: 'appointments',
-      title: 'Appointments',
-      icon: '💳',
-      value: '2'
+      id: 'today-bookings',
+      title: "Today's Bookings",
+      icon: '📅',
+      iconClass: 'icon-bookings',
+      value: `${completedCount} Completed`,
+      trend: pendingBookingsCount > 0 ? `${pendingBookingsCount} Pending` : 'All Caught Up',
+      trendType: pendingBookingsCount > 0 ? 'warning' : 'positive',
+      subtext: `${confirmedCount} Confirmed • ${completedCount} Completed`
     }
   ]
 
-  const bookingsData = [
+  const fallbackBookingsData = [
     {
       id: 1,
       startTime: '10:00 AM',
@@ -160,7 +411,38 @@ function Dashboard({ onBackToSite, user, appointments, onUpdateAppointment }) {
     }
   ]
 
-  const filteredBookings = bookingsData.filter((item) => {
+  const liveBookings =
+    appointments && appointments.length > 0
+      ? appointments.map((appt) => {
+          const startTime = appt.confirmedTime || appt.requestedTime || appt.time || '10:00 AM'
+          const client = appt.customer || 'Client'
+          const employee =
+            appt.barber?.name || (typeof appt.barber === 'string' ? appt.barber : 'Unassigned')
+          const serviceName =
+            appt.service?.name || (typeof appt.service === 'string' ? appt.service : 'Hair Cut')
+          const rawStatus = (appt.status || '').toLowerCase()
+          const normalizedStatus =
+            rawStatus === 'cancelled'
+              ? 'canceled'
+              : rawStatus === 'completed'
+              ? 'completed'
+              : 'upcoming'
+
+          return {
+            id: appt.id,
+            startTime,
+            service: serviceName,
+            endTime: appt.duration ? `${startTime} (${appt.duration})` : '10:30 AM',
+            client,
+            employee,
+            status: normalizedStatus,
+            rawStatus,
+            rawAppt: appt,
+          }
+        })
+      : fallbackBookingsData
+
+  const filteredBookings = liveBookings.filter((item) => {
     if (activeTab === 'upcoming') return item.status === 'upcoming'
     if (activeTab === 'canceled') return item.status === 'canceled'
     return true
@@ -309,6 +591,16 @@ function Dashboard({ onBackToSite, user, appointments, onUpdateAppointment }) {
                 />
                 <span>Admin</span>
               </button>
+
+              <button
+                className={`sidebar-sub-btn ${
+                  activeNav === 'settings' && settingsSubNav === 'customer-accounts' ? 'active' : ''
+                }`}
+                onClick={() => handleSettingsSubNavClick('customer-accounts')}
+              >
+                <span className="sidebar-sub-btn-emoji">👥</span>
+                <span>Customer Accounts</span>
+              </button>
             </div>
           )}
 
@@ -374,7 +666,7 @@ function Dashboard({ onBackToSite, user, appointments, onUpdateAppointment }) {
             </button>
             <div className="user-profile">
               <img
-                src={lowFadeImg}
+                src={user?.avatarUrl || lowFadeImg}
                 alt="User Profile"
                 className="user-avatar"
               />
@@ -388,6 +680,30 @@ function Dashboard({ onBackToSite, user, appointments, onUpdateAppointment }) {
             </div>
           </div>
         </header>
+
+        {/* Real-time alert when a new customer registers */}
+        {newCustomerAlert && (
+          <div
+            className="new-customer-toast-alert"
+            onClick={() => {
+              handleSettingsSubNavClick('customer-accounts')
+              setNewCustomerAlert(null)
+            }}
+          >
+            <div className="toast-alert-content">
+              <span className="toast-alert-icon">🎉</span>
+              <div>
+                <strong>New Customer Account Registered!</strong>
+                <p>
+                  {newCustomerAlert.firstName} {newCustomerAlert.lastName} ({newCustomerAlert.email}) just created an account.
+                </p>
+              </div>
+            </div>
+            <button className="toast-alert-btn" type="button">
+              View Account &rarr;
+            </button>
+          </div>
+        )}
 
         {/* Main View Switcher */}
         {activeNav === 'appointment' ? (
@@ -414,6 +730,7 @@ function Dashboard({ onBackToSite, user, appointments, onUpdateAppointment }) {
             <Settings
               activeSubNav={settingsSubNav}
               onSelectSubNav={setSettingsSubNav}
+              onUpdateUser={onUserUpdate}
             />
           </main>
         ) : (
@@ -424,15 +741,17 @@ function Dashboard({ onBackToSite, user, appointments, onUpdateAppointment }) {
                 <div key={card.id} className="overview-stat-box">
                   <div className="stat-box-top">
                     <span className="stat-box-title">{card.title}</span>
-                    <button className="stat-expand-btn" aria-label="Expand">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                        <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
-                      </svg>
-                    </button>
+                    <span className={`stat-trend-badge ${card.trendType}`}>
+                      {card.trendType === 'positive' && '↗ '}
+                      {card.trend}
+                    </span>
                   </div>
                   <div className="stat-box-bottom">
-                    <span className="stat-circle-icon">{card.icon}</span>
-                    <span className="stat-box-value">{card.value}</span>
+                    <span className={`stat-circle-icon ${card.iconClass || ''}`}>{card.icon}</span>
+                    <div className="stat-val-group">
+                      <span className="stat-box-value">{card.value}</span>
+                      {card.subtext && <span className="stat-box-subtext">{card.subtext}</span>}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -440,53 +759,54 @@ function Dashboard({ onBackToSite, user, appointments, onUpdateAppointment }) {
 
             {/* Charts Row (Annual Revenue + Customer Age) */}
             <div className="overview-charts-grid">
-              {/* Annual Revenue Wave Chart */}
+              {/* Revenue Analytics Chart with Day | Month | Year Toggle */}
               <div className="overview-card revenue-chart-card">
                 <div className="card-header-flex">
-                  <h2 className="card-heading">Chart of Annual Revenue</h2>
+                  <div className="chart-title-group">
+                    <h2 className="card-heading">{currentTfConfig.title}</h2>
+                    <span className="chart-subtext">{currentTfConfig.subtext}</span>
+                  </div>
                   <div className="card-header-actions">
-                    <select
-                      value={selectedYear}
-                      onChange={(e) => setSelectedYear(e.target.value)}
-                      className="header-pill-select"
-                    >
-                      <option value="Year">Year</option>
-                      <option value="2026">2026</option>
-                      <option value="2025">2025</option>
-                      <option value="2024">2024</option>
-                    </select>
-                    <button className="icon-circle-btn" aria-label="Download chart">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
-                        <polyline points="12 13 12 17 10 15"></polyline>
-                      </svg>
-                    </button>
+                    {/* Growth Indicator Badge */}
+                    <span className={`chart-growth-badge ${currentTfConfig.growthType}`}>
+                      {currentTfConfig.growthType === 'positive' ? '🟢' : '🔴'}{' '}
+                      {currentTfConfig.growthBadge}
+                    </span>
+                    {/* 3-Way Timeframe Toggle */}
+                    <div className="chart-timeframe-toggle">
+                      {['day', 'month', 'year'].map((tf) => (
+                        <button
+                          key={tf}
+                          className={`timeframe-btn ${chartTimeframe === tf ? 'active' : ''}`}
+                          onClick={() => {
+                            setChartTimeframe(tf)
+                            setHoveredPointIndex(null)
+                          }}
+                        >
+                          {tf.charAt(0).toUpperCase() + tf.slice(1)}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
                 <div className="revenue-chart-wrapper">
-                  {/* Y-Axis scale */}
+                  {/* Dynamic Y-Axis */}
                   <div className="revenue-y-axis">
-                    <span>25K</span>
-                    <span>20K</span>
-                    <span>15K</span>
-                    <span>10K</span>
-                    <span>5K</span>
-                    <span>0</span>
+                    {currentTfConfig.yAxisLabels.map((label, i) => (
+                      <span key={i}>{label}</span>
+                    ))}
                   </div>
 
                   <div className="revenue-svg-area">
                     {/* Horizontal Grid lines */}
                     <div className="chart-grid-lines">
-                      <div className="grid-line"></div>
-                      <div className="grid-line"></div>
-                      <div className="grid-line"></div>
-                      <div className="grid-line"></div>
-                      <div className="grid-line"></div>
-                      <div className="grid-line"></div>
+                      {currentTfConfig.yAxisLabels.map((_, i) => (
+                        <div key={i} className="grid-line"></div>
+                      ))}
                     </div>
 
-                    {/* SVG Curve */}
+                    {/* Dynamic SVG Curve */}
                     <svg
                       className="revenue-curve-svg"
                       viewBox="0 0 600 200"
@@ -498,62 +818,116 @@ function Dashboard({ onBackToSite, user, appointments, onUpdateAppointment }) {
                           <stop offset="50%" stopColor="#a855f7" />
                           <stop offset="100%" stopColor="#6366f1" />
                         </linearGradient>
+                        <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#a855f7" stopOpacity="0.25" />
+                          <stop offset="100%" stopColor="#a855f7" stopOpacity="0.02" />
+                        </linearGradient>
                         <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
                           <feDropShadow dx="0" dy="6" stdDeviation="6" floodColor="#a855f7" floodOpacity="0.35" />
                         </filter>
                       </defs>
 
-                      {/* Smooth spline path */}
+                      {/* Gradient area fill under the curve */}
+                      {splineData.areaD && (
+                        <path
+                          d={splineData.areaD}
+                          fill="url(#areaGradient)"
+                          className="chart-area-fill"
+                        />
+                      )}
+
+                      {/* Smooth spline curve */}
                       <path
-                        d="M 15 100
-                           C 35 125, 55 135, 75 120
-                           C 95 105, 115 65, 135 68
-                           C 155 71, 175 110, 195 105
-                           C 215 100, 235 130, 255 115
-                           C 275 100, 295 65, 315 80
-                           C 335 95, 355 155, 375 150
-                           C 395 145, 415 125, 435 105
-                           C 455 85, 475 40, 500 50
-                           C 525 60, 545 75, 565 65
-                           C 580 57, 590 35, 595 28"
+                        d={splineData.pathD}
                         fill="none"
                         stroke="url(#curveGradient)"
-                        strokeWidth="3.5"
+                        strokeWidth="3"
                         strokeLinecap="round"
                         filter="url(#glow)"
+                        className="chart-spline-path"
                       />
 
-                      {/* Key point nodes */}
-                      <circle cx="135" cy="68" r="4.5" fill="#ffffff" stroke="#a855f7" strokeWidth="2.5" />
-                      <circle cx="195" cy="105" r="4.5" fill="#ffffff" stroke="#a855f7" strokeWidth="2.5" />
-                      <circle cx="315" cy="80" r="4.5" fill="#ffffff" stroke="#a855f7" strokeWidth="2.5" />
-                      <circle cx="435" cy="105" r="4.5" fill="#ffffff" stroke="#a855f7" strokeWidth="2.5" />
-                      <circle cx="500" cy="50" r="4.5" fill="#ffffff" stroke="#a855f7" strokeWidth="2.5" />
+                      {/* Interactive data point nodes */}
+                      {splineData.points.map((pt, idx) => (
+                        <g key={idx}>
+                          {/* Invisible wider hit area for hover */}
+                          <circle
+                            cx={pt.x}
+                            cy={pt.y}
+                            r="14"
+                            fill="transparent"
+                            style={{ cursor: 'pointer' }}
+                            onMouseEnter={() => setHoveredPointIndex(idx)}
+                            onMouseLeave={() => setHoveredPointIndex(null)}
+                          />
+                          {/* Vertical dashed guide line on active point */}
+                          {activeTooltipIndex === idx && (
+                            <line
+                              x1={pt.x}
+                              y1={pt.y}
+                              x2={pt.x}
+                              y2="200"
+                              stroke="#a855f7"
+                              strokeWidth="1"
+                              strokeDasharray="4 3"
+                              opacity="0.4"
+                            />
+                          )}
+                          {/* Visible node circle */}
+                          <circle
+                            cx={pt.x}
+                            cy={pt.y}
+                            r={activeTooltipIndex === idx ? 6 : pt.isCurrent ? 5 : 4}
+                            fill={activeTooltipIndex === idx ? '#a855f7' : pt.isCurrent ? '#22c55e' : '#ffffff'}
+                            stroke={pt.isCurrent ? '#22c55e' : '#a855f7'}
+                            strokeWidth="2.5"
+                            className={`chart-node ${activeTooltipIndex === idx ? 'active' : ''} ${pt.isCurrent ? 'current' : ''}`}
+                          />
+                          {/* Outer pulse ring on current point */}
+                          {pt.isCurrent && (
+                            <circle
+                              cx={pt.x}
+                              cy={pt.y}
+                              r="10"
+                              fill="none"
+                              stroke="#22c55e"
+                              strokeWidth="1.5"
+                              opacity="0.4"
+                              className="pulse-ring"
+                            />
+                          )}
+                        </g>
+                      ))}
                     </svg>
 
-                    {/* Active Production Tooltip */}
-                    <div className="chart-tooltip-badge" style={{ left: '52%', top: '16%' }}>
-                      <span className="tooltip-tag">Production</span>
-                      <span className="tooltip-number">13,721</span>
-                      <div className="tooltip-arrow"></div>
-                    </div>
+                    {/* Dynamic Tooltip */}
+                    {activePoint && (
+                      <div
+                        className={`chart-tooltip-badge ${activePoint.isCurrent ? 'live' : ''} ${activePoint.isPeak ? 'peak' : ''}`}
+                        style={{
+                          left: `${(activePoint.x / 600) * 100}%`,
+                          top: `${(activePoint.y / 200) * 100 - 18}%`
+                        }}
+                      >
+                        <span className="tooltip-tag">{activePoint.tag || activePoint.label}</span>
+                        <span className="tooltip-number">₱{(activePoint.value || 0).toLocaleString()}</span>
+                        {activePoint.note && <span className="tooltip-note">{activePoint.note}</span>}
+                        <div className="tooltip-arrow"></div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {/* X-Axis Months */}
+                {/* Dynamic X-Axis Labels */}
                 <div className="revenue-x-axis">
-                  <span>Jan</span>
-                  <span>Feb</span>
-                  <span>Mar</span>
-                  <span>Apr</span>
-                  <span>May</span>
-                  <span>Jun</span>
-                  <span>Jul</span>
-                  <span>Aug</span>
-                  <span>Sep</span>
-                  <span>Oct</span>
-                  <span>Nov</span>
-                  <span>Dec</span>
+                  {currentTfConfig.data.map((dp, i) => (
+                    <span
+                      key={i}
+                      className={`x-label ${dp.isCurrent ? 'current' : ''} ${activeTooltipIndex === i ? 'active' : ''}`}
+                    >
+                      {dp.shortLabel}
+                    </span>
+                  ))}
                 </div>
               </div>
 

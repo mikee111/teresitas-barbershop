@@ -1,527 +1,391 @@
-import { useEffect, useMemo, useState } from 'react'
-import { createPortal } from 'react-dom'
-import '../../styles/UserDashboard.css'
+import { useState, useRef, useEffect } from 'react'
+import '../../styles/SharedAdminTable.css'
+import '../../styles/settings/Settings.css'
 import '../../styles/MyProfile.css'
 
-const DEFAULT_PASSWORD = 'user123'
-
-function getInitials(firstName, lastName) {
-  const first = (firstName || '')[0] || ''
-  const last = (lastName || '')[0] || ''
-  return `${first}${last}`.toUpperCase() || 'CL'
-}
-
-function isValidEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-}
-
-function isValidPhone(phone) {
-  const digits = phone.replace(/\D/g, '')
-  return digits.length >= 10 && digits.length <= 13
-}
-
-function MyProfile({ user, onUpdateUser = () => {} }) {
-  const profile = useMemo(
-    () => ({
-      firstName: user?.firstName || 'Juan',
-      lastName: user?.lastName || 'Dela Cruz',
-      email: user?.email || 'user@teresitas.com',
-      contact: user?.contact || '0912-345-6789',
-      password: user?.password || DEFAULT_PASSWORD,
-    }),
-    [user]
-  )
-
-  const [personalForm, setPersonalForm] = useState({
-    firstName: profile.firstName,
-    lastName: profile.lastName,
-    contact: profile.contact,
+function MyProfile({ user, onUpdateUser }) {
+  const [formData, setFormData] = useState({
+    firstName: user?.firstName || 'Juan',
+    middleName: user?.middleName || 'Santos',
+    lastName: user?.lastName || 'Dela Cruz',
+    email: user?.email || 'user@teresitas.com',
+    contact: user?.contact || '0917-890-1234',
+    birthdate: user?.birthdate || '1998-05-15',
+    age: user?.age ? String(user.age) : '28',
+    address: user?.address || '123 Rizal St., Sampaloc, Manila',
+    password: user?.password || 'user123'
   })
-  const [personalErrors, setPersonalErrors] = useState({})
-  const [personalToast, setPersonalToast] = useState(null)
 
-  const [emailModalOpen, setEmailModalOpen] = useState(false)
-  const [emailForm, setEmailForm] = useState({
-    newEmail: '',
-    confirmEmail: '',
-    currentPassword: '',
-  })
-  const [emailError, setEmailError] = useState('')
+  const [isEditing, setIsEditing] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || null)
+  const [savedSuccess, setSavedSuccess] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
-  const [passwordModalOpen, setPasswordModalOpen] = useState(false)
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  })
-  const [passwordError, setPasswordError] = useState('')
+  const fileInputRef = useRef(null)
 
+  // Sync state if user prop changes
   useEffect(() => {
-    if (!personalToast) return undefined
+    if (user) {
+      setFormData((prev) => ({
+        ...prev,
+        firstName: user.firstName || prev.firstName,
+        middleName: user.middleName || prev.middleName,
+        lastName: user.lastName || prev.lastName,
+        email: user.email || prev.email,
+        contact: user.contact || prev.contact,
+        birthdate: user.birthdate || prev.birthdate,
+        age: user.age ? String(user.age) : prev.age,
+        address: user.address || prev.address,
+        password: user.password || prev.password
+      }))
+      // Sync avatar from parent (e.g. after re-login)
+      if (user.avatarUrl) setAvatarUrl(user.avatarUrl)
+    }
+  }, [user])
 
-    const timer = window.setTimeout(() => {
-      setPersonalToast(null)
-    }, 4000)
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
 
-    return () => window.clearTimeout(timer)
-  }, [personalToast])
-
-  const fullName = `${profile.firstName} ${profile.lastName}`.trim()
-
-  const isPersonalDirty =
-    personalForm.firstName.trim() !== profile.firstName ||
-    personalForm.lastName.trim() !== profile.lastName ||
-    personalForm.contact.trim() !== profile.contact
-
-  const handlePersonalChange = (e) => {
-    const { name, value } = e.target
-    setPersonalForm((prev) => ({ ...prev, [name]: value }))
-    setPersonalErrors((prev) => ({ ...prev, [name]: '' }))
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const dataUrl = event.target.result
+      setAvatarUrl(dataUrl)
+      // Immediately propagate to parent so top-right avatar updates in real time
+      if (onUpdateUser) {
+        onUpdateUser({ avatarUrl: dataUrl })
+      }
+    }
+    reader.readAsDataURL(file)
   }
 
-  const handlePersonalCancel = () => {
-    setPersonalForm({
-      firstName: profile.firstName,
-      lastName: profile.lastName,
-      contact: profile.contact,
-    })
-    setPersonalErrors({})
-    setPersonalToast(null)
+  const handleTriggerPhoto = () => {
+    fileInputRef.current?.click()
   }
 
-  const handlePersonalSave = (e) => {
+  const handleEditToggle = () => {
+    setIsEditing((prev) => !prev)
+    setSavedSuccess(false)
+  }
+
+  // Auto-calculate age if birthdate changes
+  const handleBirthdateChange = (e) => {
+    const val = e.target.value
+    let calculatedAge = formData.age
+    if (val) {
+      const birth = new Date(val)
+      if (!isNaN(birth.getTime())) {
+        const today = new Date()
+        let age = today.getFullYear() - birth.getFullYear()
+        const m = today.getMonth() - birth.getMonth()
+        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+          age--
+        }
+        if (age >= 0 && age <= 120) {
+          calculatedAge = age.toString()
+        }
+      }
+    }
+    setFormData((prev) => ({ ...prev, birthdate: val, age: calculatedAge }))
+  }
+
+  const handleInputChange = (field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  const handleSaveChanges = (e) => {
     e.preventDefault()
-    const errors = {}
+    setIsEditing(false)
+    setSavedSuccess(true)
 
-    if (!personalForm.firstName.trim()) {
-      errors.firstName = 'First name is required.'
-    }
-    if (!personalForm.lastName.trim()) {
-      errors.lastName = 'Last name is required.'
-    }
-    if (!personalForm.contact.trim()) {
-      errors.contact = 'Contact number is required.'
-    } else if (!isValidPhone(personalForm.contact)) {
-      errors.contact = 'Enter a valid contact number (10–13 digits).'
-    }
-
-    if (Object.keys(errors).length > 0) {
-      setPersonalErrors(errors)
-      return
-    }
-
-    const updates = {
-      firstName: personalForm.firstName.trim(),
-      lastName: personalForm.lastName.trim(),
-      contact: personalForm.contact.trim(),
+    if (onUpdateUser) {
+      onUpdateUser({
+        firstName: formData.firstName.trim(),
+        middleName: formData.middleName.trim(),
+        lastName: formData.lastName.trim(),
+        email: formData.email.trim(),
+        contact: formData.contact.trim(),
+        birthdate: formData.birthdate,
+        age: formData.age ? parseInt(formData.age, 10) : null,
+        address: formData.address.trim(),
+        password: formData.password,
+        // Include avatar so it persists on save as well
+        avatarUrl: avatarUrl || undefined
+      })
     }
 
-    onUpdateUser(updates)
-    setPersonalForm(updates)
-    setPersonalErrors({})
-    setPersonalToast({ type: 'success', message: 'Personal information saved successfully.' })
+    setTimeout(() => {
+      setSavedSuccess(false)
+    }, 3500)
   }
 
-  const openEmailModal = () => {
-    setEmailForm({ newEmail: '', confirmEmail: '', currentPassword: '' })
-    setEmailError('')
-    setEmailModalOpen(true)
+  const getInitials = (first, last) => {
+    const f = (first || '').charAt(0).toUpperCase()
+    const l = (last || '').charAt(0).toUpperCase()
+    return f + l || 'JD'
   }
-
-  const closeEmailModal = () => {
-    setEmailModalOpen(false)
-    setEmailError('')
-  }
-
-  const handleEmailSubmit = (e) => {
-    e.preventDefault()
-    setEmailError('')
-
-    if (emailForm.currentPassword !== profile.password) {
-      setEmailError('Current password is incorrect.')
-      return
-    }
-    if (!isValidEmail(emailForm.newEmail)) {
-      setEmailError('Enter a valid email address.')
-      return
-    }
-    if (emailForm.newEmail.trim().toLowerCase() === profile.email.toLowerCase()) {
-      setEmailError('New email must be different from your current email.')
-      return
-    }
-    if (emailForm.newEmail.trim() !== emailForm.confirmEmail.trim()) {
-      setEmailError('Email addresses do not match.')
-      return
-    }
-
-    onUpdateUser({ email: emailForm.newEmail.trim().toLowerCase() })
-    closeEmailModal()
-    setPersonalToast({ type: 'success', message: 'Email updated successfully.' })
-  }
-
-  const openPasswordModal = () => {
-    setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
-    setPasswordError('')
-    setPasswordModalOpen(true)
-  }
-
-  const closePasswordModal = () => {
-    setPasswordModalOpen(false)
-    setPasswordError('')
-  }
-
-  const handlePasswordSubmit = (e) => {
-    e.preventDefault()
-    setPasswordError('')
-
-    if (passwordForm.currentPassword !== profile.password) {
-      setPasswordError('Current password is incorrect.')
-      return
-    }
-    if (passwordForm.newPassword.length < 6) {
-      setPasswordError('New password must be at least 6 characters.')
-      return
-    }
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setPasswordError('New passwords do not match.')
-      return
-    }
-    if (passwordForm.newPassword === profile.password) {
-      setPasswordError('New password must be different from your current password.')
-      return
-    }
-
-    onUpdateUser({ password: passwordForm.newPassword })
-    closePasswordModal()
-    setPersonalToast({ type: 'success', message: 'Password updated successfully.' })
-  }
-
-  const emailModal = emailModalOpen
-    ? createPortal(
-        <div className="my-profile-modal-overlay" onClick={closeEmailModal}>
-          <div
-            className="my-profile-modal-card"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-labelledby="change-email-title"
-          >
-            <div className="my-profile-modal-header">
-              <h2 id="change-email-title">Change Email</h2>
-              <button
-                type="button"
-                className="my-profile-modal-close"
-                onClick={closeEmailModal}
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleEmailSubmit}>
-              <div className="my-profile-modal-body">
-                <p className="my-profile-modal-note">
-                  Current email: <strong>{profile.email}</strong>. You will use the new email to sign in.
-                </p>
-
-                {emailError && (
-                  <div className="my-profile-toast error" role="alert">
-                    {emailError}
-                  </div>
-                )}
-
-                <div className="my-profile-form-group">
-                  <label htmlFor="new-email">New Email</label>
-                  <input
-                    id="new-email"
-                    type="email"
-                    className="my-profile-form-input"
-                    placeholder="name@example.com"
-                    value={emailForm.newEmail}
-                    onChange={(e) => setEmailForm((prev) => ({ ...prev, newEmail: e.target.value }))}
-                    required
-                  />
-                </div>
-
-                <div className="my-profile-form-group">
-                  <label htmlFor="confirm-email">Confirm New Email</label>
-                  <input
-                    id="confirm-email"
-                    type="email"
-                    className="my-profile-form-input"
-                    placeholder="name@example.com"
-                    value={emailForm.confirmEmail}
-                    onChange={(e) =>
-                      setEmailForm((prev) => ({ ...prev, confirmEmail: e.target.value }))
-                    }
-                    required
-                  />
-                </div>
-
-                <div className="my-profile-form-group">
-                  <label htmlFor="email-current-password">Current Password</label>
-                  <input
-                    id="email-current-password"
-                    type="password"
-                    className="my-profile-form-input"
-                    placeholder="Enter current password"
-                    value={emailForm.currentPassword}
-                    onChange={(e) =>
-                      setEmailForm((prev) => ({ ...prev, currentPassword: e.target.value }))
-                    }
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="my-profile-modal-footer">
-                <button type="button" className="my-profile-btn-secondary" onClick={closeEmailModal}>
-                  Cancel
-                </button>
-                <button type="submit" className="my-profile-btn-primary">
-                  Update Email
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>,
-        document.body
-      )
-    : null
-
-  const passwordModal = passwordModalOpen
-    ? createPortal(
-        <div className="my-profile-modal-overlay" onClick={closePasswordModal}>
-          <div
-            className="my-profile-modal-card"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-labelledby="change-password-title"
-          >
-            <div className="my-profile-modal-header">
-              <h2 id="change-password-title">Change Password</h2>
-              <button
-                type="button"
-                className="my-profile-modal-close"
-                onClick={closePasswordModal}
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handlePasswordSubmit}>
-              <div className="my-profile-modal-body">
-                {passwordError && (
-                  <div className="my-profile-toast error" role="alert">
-                    {passwordError}
-                  </div>
-                )}
-
-                <div className="my-profile-form-group">
-                  <label htmlFor="current-password">Current Password</label>
-                  <input
-                    id="current-password"
-                    type="password"
-                    className="my-profile-form-input"
-                    placeholder="Enter current password"
-                    value={passwordForm.currentPassword}
-                    onChange={(e) =>
-                      setPasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))
-                    }
-                    required
-                  />
-                </div>
-
-                <div className="my-profile-form-group">
-                  <label htmlFor="new-password">New Password</label>
-                  <input
-                    id="new-password"
-                    type="password"
-                    className="my-profile-form-input"
-                    placeholder="At least 6 characters"
-                    value={passwordForm.newPassword}
-                    onChange={(e) =>
-                      setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))
-                    }
-                    required
-                    minLength={6}
-                  />
-                </div>
-
-                <div className="my-profile-form-group">
-                  <label htmlFor="confirm-password">Confirm New Password</label>
-                  <input
-                    id="confirm-password"
-                    type="password"
-                    className="my-profile-form-input"
-                    placeholder="Re-enter new password"
-                    value={passwordForm.confirmPassword}
-                    onChange={(e) =>
-                      setPasswordForm((prev) => ({ ...prev, confirmPassword: e.target.value }))
-                    }
-                    required
-                    minLength={6}
-                  />
-                </div>
-              </div>
-
-              <div className="my-profile-modal-footer">
-                <button type="button" className="my-profile-btn-secondary" onClick={closePasswordModal}>
-                  Cancel
-                </button>
-                <button type="submit" className="my-profile-btn-primary">
-                  Update Password
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>,
-        document.body
-      )
-    : null
 
   return (
-    <div className="my-profile-shell">
-    <div className="my-profile-page">
-      {personalToast && (
-        <div className={`my-profile-toast ${personalToast.type}`} role="status">
-          {personalToast.message}
+    <div className="appointment-table-shell customer-accounts-shell user-profile-shell">
+      {/* Header Bar matching Customer Accounts Management design */}
+      <div className="appointment-table-titlebar user-profile-titlebar">
+        <div className="user-profile-title-group">
+          <h2>MY PROFILE</h2>
+          <p className="customer-accounts-subtitle user-profile-subtitle">
+            Personal customer profile, contact information, and account settings
+          </p>
         </div>
-      )}
 
-      {/* Profile Header */}
-      <div className="my-profile-header-card">
-        <div className="my-profile-avatar" aria-hidden="true">
-          {getInitials(profile.firstName, profile.lastName)}
-        </div>
-        <div className="my-profile-header-info">
-          <h2>{fullName}</h2>
-          <div className="my-profile-header-meta">
-            <span className="my-profile-role-badge">Client</span>
-            <span>{profile.email}</span>
-            <span>·</span>
-            <span>{profile.contact}</span>
+        {/* Right side: Badge and Edit Profile Button */}
+        <div className="user-profile-header-right">
+          <div className="customer-accounts-header-badge user-profile-header-badge">
+            <span>👤 Client Account</span>
           </div>
+          <button
+            type="button"
+            className={`user-profile-nav-edit-btn ${isEditing ? 'active' : ''}`}
+            onClick={handleEditToggle}
+            title={isEditing ? 'Cancel Edit' : 'Edit Profile'}
+          >
+            <span>{isEditing ? '✕ Cancel Edit' : '✏️ Edit Profile'}</span>
+          </button>
         </div>
       </div>
 
-      {/* Personal Information */}
-      <section className="my-profile-card">
-        <div className="my-profile-card-header">
-          <div>
-            <h3>Personal Information</h3>
-            <p className="my-profile-card-desc">Update your name and contact details.</p>
+      <div className="admin-profile-body user-profile-body">
+        {/* Profile Picture Section */}
+        <div className="admin-profile-picture-section">
+          <label className="admin-profile-section-label">Profile Picture</label>
+
+          <div className="admin-profile-avatar-box user-avatar-box">
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt="Profile Preview"
+                className="admin-profile-avatar-img"
+              />
+            ) : (
+              <div className="user-profile-avatar-placeholder">
+                <span className="user-avatar-initials-text">
+                  {getInitials(formData.firstName, formData.lastName)}
+                </span>
+              </div>
+            )}
           </div>
+
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handlePhotoUpload}
+            accept="image/*"
+            style={{ display: 'none' }}
+          />
+
+          <button
+            type="button"
+            className="admin-profile-btn-photo user-photo-btn"
+            onClick={handleTriggerPhoto}
+          >
+            <span>📷</span>
+            <span>Change Photo</span>
+          </button>
         </div>
 
-        <form onSubmit={handlePersonalSave}>
-          <div className="my-profile-form-grid">
-            <div className="my-profile-form-group">
-              <label htmlFor="profile-firstName">First Name</label>
+        {/* Form Fields matching Admin Profile */}
+        <form className="admin-profile-form user-profile-form" onSubmit={handleSaveChanges}>
+          {/* Row 1: First Name & Middle Name */}
+          <div className="user-form-row">
+            <div className="admin-profile-field">
+              <label className="admin-profile-label" htmlFor="user-first-name">
+                First Name
+              </label>
               <input
-                id="profile-firstName"
-                name="firstName"
+                id="user-first-name"
                 type="text"
-                className="my-profile-form-input"
-                placeholder="e.g. Juan"
-                value={personalForm.firstName}
-                onChange={handlePersonalChange}
+                className="admin-profile-input"
+                value={formData.firstName}
+                onChange={(e) => handleInputChange('firstName', e.target.value)}
+                disabled={!isEditing}
+                placeholder="Enter first name"
+                required
               />
-              {personalErrors.firstName && (
-                <span className="my-profile-field-error">{personalErrors.firstName}</span>
-              )}
             </div>
 
-            <div className="my-profile-form-group">
-              <label htmlFor="profile-lastName">Last Name</label>
+            <div className="admin-profile-field">
+              <label className="admin-profile-label" htmlFor="user-middle-name">
+                Middle Name
+              </label>
               <input
-                id="profile-lastName"
-                name="lastName"
+                id="user-middle-name"
                 type="text"
-                className="my-profile-form-input"
-                placeholder="e.g. Dela Cruz"
-                value={personalForm.lastName}
-                onChange={handlePersonalChange}
+                className="admin-profile-input"
+                value={formData.middleName}
+                onChange={(e) => handleInputChange('middleName', e.target.value)}
+                disabled={!isEditing}
+                placeholder="Enter middle name"
               />
-              {personalErrors.lastName && (
-                <span className="my-profile-field-error">{personalErrors.lastName}</span>
-              )}
-            </div>
-
-            <div className="my-profile-form-group full-width">
-              <label htmlFor="profile-contact">Contact Number</label>
-              <input
-                id="profile-contact"
-                name="contact"
-                type="tel"
-                className="my-profile-form-input"
-                placeholder="e.g. 0912-345-6789"
-                value={personalForm.contact}
-                onChange={handlePersonalChange}
-              />
-              {personalErrors.contact && (
-                <span className="my-profile-field-error">{personalErrors.contact}</span>
-              )}
             </div>
           </div>
 
-          <div className="my-profile-form-actions">
+          {/* Row 2: Last Name & Email */}
+          <div className="user-form-row">
+            <div className="admin-profile-field">
+              <label className="admin-profile-label" htmlFor="user-last-name">
+                Last Name
+              </label>
+              <input
+                id="user-last-name"
+                type="text"
+                className="admin-profile-input"
+                value={formData.lastName}
+                onChange={(e) => handleInputChange('lastName', e.target.value)}
+                disabled={!isEditing}
+                placeholder="Enter last name"
+                required
+              />
+            </div>
+
+            <div className="admin-profile-field">
+              <label className="admin-profile-label" htmlFor="user-email">
+                Email Address
+              </label>
+              <input
+                id="user-email"
+                type="email"
+                className="admin-profile-input"
+                value={formData.email}
+                onChange={(e) => handleInputChange('email', e.target.value)}
+                disabled={!isEditing}
+                placeholder="name@example.com"
+                required
+              />
+            </div>
+          </div>
+
+          {/* Row 3: Contact & Birthdate */}
+          <div className="user-form-row">
+            <div className="admin-profile-field">
+              <label className="admin-profile-label" htmlFor="user-contact">
+                Contact Number
+              </label>
+              <input
+                id="user-contact"
+                type="text"
+                className="admin-profile-input"
+                value={formData.contact}
+                onChange={(e) => handleInputChange('contact', e.target.value)}
+                disabled={!isEditing}
+                placeholder="0917-000-0000"
+              />
+            </div>
+
+            <div className="admin-profile-field">
+              <label className="admin-profile-label" htmlFor="user-birthdate">
+                Birthdate
+              </label>
+              <input
+                id="user-birthdate"
+                type="date"
+                className="admin-profile-input"
+                value={formData.birthdate}
+                onChange={handleBirthdateChange}
+                disabled={!isEditing}
+              />
+            </div>
+          </div>
+
+          {/* Row 4: Age & Address */}
+          <div className="user-form-row">
+            <div className="admin-profile-field user-field-age">
+              <label className="admin-profile-label" htmlFor="user-age">
+                Age
+              </label>
+              <input
+                id="user-age"
+                type="text"
+                className="admin-profile-input"
+                value={formData.age ? `${formData.age} yrs old` : ''}
+                readOnly
+                disabled
+                placeholder="Auto-calculated"
+              />
+            </div>
+
+            <div className="admin-profile-field user-field-address">
+              <label className="admin-profile-label" htmlFor="user-address">
+                Complete Address
+              </label>
+              <input
+                id="user-address"
+                type="text"
+                className="admin-profile-input"
+                value={formData.address}
+                onChange={(e) => handleInputChange('address', e.target.value)}
+                disabled={!isEditing}
+                placeholder="Complete street address, city"
+              />
+            </div>
+          </div>
+
+          {/* Row 5: Account Password */}
+          <div className="admin-profile-field">
+            <label className="admin-profile-label" htmlFor="user-password">
+              Account Password
+            </label>
+            <div className="user-profile-password-wrap">
+              <input
+                id="user-password"
+                type={showPassword ? 'text' : 'password'}
+                className="admin-profile-input user-profile-password-input"
+                value={formData.password}
+                onChange={(e) => handleInputChange('password', e.target.value)}
+                disabled={!isEditing}
+                placeholder="Account password"
+              />
+              <button
+                type="button"
+                className="user-password-eye-btn"
+                onClick={() => setShowPassword((prev) => !prev)}
+                title={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? '🙈' : '👁️'}
+              </button>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="admin-profile-actions user-profile-actions">
+            {/* Edit Button */}
             <button
               type="button"
-              className="my-profile-btn-secondary"
-              onClick={handlePersonalCancel}
-              disabled={!isPersonalDirty}
+              className="admin-profile-btn-edit user-btn-edit"
+              onClick={handleEditToggle}
             >
-              Cancel
+              <span>✏️</span>
+              <span>{isEditing ? 'Cancel Edit' : 'Edit Profile'}</span>
             </button>
+
+            {/* Save Changes Button (Green Accent) */}
             <button
               type="submit"
-              className="my-profile-btn-primary"
-              disabled={!isPersonalDirty}
+              className="admin-profile-btn-save user-btn-save"
+              disabled={!isEditing}
             >
-              Save Changes
+              <span>💾</span>
+              <span>Save Changes</span>
             </button>
+
+            {savedSuccess && (
+              <span className="admin-profile-toast user-profile-toast">
+                ✓ Profile changes saved successfully!
+              </span>
+            )}
           </div>
         </form>
-      </section>
-
-      {/* Account Security */}
-      <section className="my-profile-card">
-        <div className="my-profile-card-header">
-          <div>
-            <h3>Account Security</h3>
-            <p className="my-profile-card-desc">
-              Manage your login email and password separately from personal info.
-            </p>
-          </div>
-        </div>
-
-        <div className="my-profile-security-list">
-          <div className="my-profile-security-row">
-            <div>
-              <div className="my-profile-security-label">Email Address</div>
-              <div className="my-profile-security-value">{profile.email}</div>
-            </div>
-            <button type="button" className="my-profile-btn-outline" onClick={openEmailModal}>
-              Change Email
-            </button>
-          </div>
-
-          <div className="my-profile-security-row">
-            <div>
-              <div className="my-profile-security-label">Password</div>
-              <div className="my-profile-security-value masked">••••••••</div>
-            </div>
-            <button type="button" className="my-profile-btn-outline" onClick={openPasswordModal}>
-              Change Password
-            </button>
-          </div>
-        </div>
-      </section>
-
-    </div>
-    {emailModal}
-    {passwordModal}
+      </div>
     </div>
   )
 }

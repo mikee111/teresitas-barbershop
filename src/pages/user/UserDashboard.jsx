@@ -10,7 +10,7 @@ import {
   lowFadeImg,
   servicesScissorIcon,
   reviewIcon,
-  adminProfileIcon
+  clientSidebarIcon,
 } from '../../assets/images'
 
 function UserDashboard({ user, onLogout, onUserUpdate, appointments = [], onUpdateAppointment, onAddAppointment }) {
@@ -30,7 +30,6 @@ function UserDashboard({ user, onLogout, onUserUpdate, appointments = [], onUpda
     dashboard: 'Client Dashboard',
     appointment: 'Book Appointment',
     services: 'Services & Pricing',
-
     profile: 'My Profile'
   }
 
@@ -154,11 +153,11 @@ function UserDashboard({ user, onLogout, onUserUpdate, appointments = [], onUpda
               className={`sidebar-btn ${activeNav === 'profile' ? 'active' : ''}`}
               onClick={() => setActiveNav('profile')}
             >
-              {adminProfileIcon ? (
+              {clientSidebarIcon ? (
                 <img
-                  src={adminProfileIcon}
+                  src={clientSidebarIcon}
                   alt="My Profile"
-                  className="sidebar-btn-img"
+                  className="sidebar-btn-img user-profile-sidebar-img"
                   onError={(e) => { e.currentTarget.style.display = 'none' }}
                 />
               ) : (
@@ -224,9 +223,9 @@ function UserDashboard({ user, onLogout, onUserUpdate, appointments = [], onUpda
               {upcomingCount > 0 && <span className="notification-dot" />}
             </button>
             <div className="user-profile">
-              {lowFadeImg ? (
+              {(user?.avatarUrl || lowFadeImg) ? (
                 <img
-                  src={lowFadeImg}
+                  src={user?.avatarUrl || lowFadeImg}
                   alt="Client Profile"
                   className="user-avatar"
                   onError={(e) => { e.currentTarget.style.display = 'none' }}
@@ -245,6 +244,7 @@ function UserDashboard({ user, onLogout, onUserUpdate, appointments = [], onUpda
         <main className={`dashboard-content client-dashboard-content${activeNav === 'profile' ? ' client-dashboard-content--profile' : ''}`}>
           {activeNav === 'appointment' ? (
             <BookAppointment
+              appointments={appointments}
               initialBookingData={rebookData}
               onBookingComplete={handleBookingComplete}
             />

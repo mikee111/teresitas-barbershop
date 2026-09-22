@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import '../../styles/SharedAdminTable.css'
 import '../../styles/settings/Settings.css'
 
-function AdminSettings() {
+function AdminSettings({ onUpdateUser }) {
   const [fullName, setFullName] = useState('Mike Arvin Cruz')
   const [email, setEmail] = useState('admin@barbershop.com')
   const [isEditing, setIsEditing] = useState(false)
@@ -16,6 +16,10 @@ function AdminSettings() {
     if (file) {
       const url = URL.createObjectURL(file)
       setAvatarUrl(url)
+      // Propagate avatar URL to parent (admin user)
+      if (onUpdateUser) {
+        onUpdateUser({ avatarUrl: url })
+      }
     }
   }
 
@@ -30,6 +34,10 @@ function AdminSettings() {
 
   const handleSaveChanges = (e) => {
     e.preventDefault()
+    // Ensure avatarUrl is saved with other fields if edited
+    if (onUpdateUser) {
+      onUpdateUser({ avatarUrl })
+    }
     setIsEditing(false)
     setSavedSuccess(true)
     setTimeout(() => {

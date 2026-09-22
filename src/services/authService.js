@@ -94,6 +94,7 @@ export const formatUserRecord = (row) => ({
   age: row.age || '',
   address: row.address || '',
   contact: row.contact || '',
+  password: row.password || '',
   role: row.role || 'user',
   createdAt: row.created_at || new Date().toISOString()
 })
@@ -348,6 +349,8 @@ export const updateUserProfile = async (idOrEmail, updates) => {
     if (updates.middleName !== undefined) dbUpdates.middle_name = updates.middleName
     if (updates.lastName !== undefined) dbUpdates.last_name = updates.lastName
     if (updates.contact !== undefined) dbUpdates.contact = updates.contact
+    if (updates.birthdate !== undefined) dbUpdates.birthdate = updates.birthdate || null
+    if (updates.age !== undefined) dbUpdates.age = updates.age ? parseInt(updates.age, 10) : null
     if (updates.address !== undefined) dbUpdates.address = updates.address
     if (updates.password !== undefined) dbUpdates.password = updates.password
     if (updates.email !== undefined) dbUpdates.email = updates.email.trim().toLowerCase()

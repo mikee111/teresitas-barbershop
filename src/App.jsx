@@ -207,6 +207,7 @@ function App() {
         onBackToSite={handleLogout}
         appointments={sharedAppointments}
         onUpdateAppointment={handleUpdateSharedAppointment}
+        onUserUpdate={handleUserUpdate}
       />
     )
   }

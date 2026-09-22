@@ -11,6 +11,11 @@ import {
   subscribeToServices,
   parsePriceNumber,
 } from '../../services/servicesService'
+import {
+  fetchBarbers,
+  subscribeToBarbers,
+  INITIAL_DEFAULT_BARBERS
+} from '../../services/barberService'
 
 const FALLBACK_SERVICES = [
   {
@@ -75,37 +80,6 @@ const FALLBACK_SERVICES = [
   }
 ]
 
-const BARBERS_DATA = [
-  {
-    id: 1,
-    name: 'Mark Reyes',
-    role: 'Master Barber',
-    rating: '⭐ 4.9 (128 reviews)',
-    specialty: 'Fades & Classic Cuts'
-  },
-  {
-    id: 2,
-    name: 'John Carlio',
-    role: 'Senior Barber',
-    rating: '⭐ 4.8 (95 reviews)',
-    specialty: 'Beard Grooming & Styling'
-  },
-  {
-    id: 3,
-    name: 'Luis Santos',
-    role: 'Fade Specialist',
-    rating: '⭐ 4.9 (110 reviews)',
-    specialty: 'Taper Fade & Modern Cuts'
-  },
-  {
-    id: 4,
-    name: 'Marco Cruz',
-    role: 'Stylist & Colorist',
-    rating: '⭐ 4.7 (84 reviews)',
-    specialty: 'Hair Color & Scissor Work'
-  }
-]
-
 const TIME_SLOTS = [
   '09:00 AM',
   '09:30 AM',
@@ -123,33 +97,61 @@ const TIME_SLOTS = [
   '04:30 PM'
 ]
 
-// Generate 7 selectable days starting today
-function getUpcomingDays() {
-  const days = []
-  const today = new Date(2026, 7, 24) // Aug 24, 2026 baseline
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const MONTH_NAMES_FULL = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+]
 
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(today)
-    d.setDate(today.getDate() + i)
-    days.push({
-      dateStr: `${monthNames[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`,
-      dayName: dayNames[d.getDay()],
-      dayNumber: d.getDate(),
-      fullDate: d
-    })
-  }
-  return days
+const MONTH_NAMES_SHORT = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+]
+
+const DAY_NAMES_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+function formatDateString(d) {
+  return `${MONTH_NAMES_SHORT[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
 }
 
-function BookAppointment({ onBookingComplete, initialBookingData }) {
+function parseDateString(str) {
+  if (!str) return null
+  const parsed = new Date(str)
+  return isNaN(parsed.getTime()) ? null : parsed
+}
+
+function BookAppointment({ onBookingComplete, initialBookingData, appointments = [] }) {
   const [currentStep, setCurrentStep] = useState(initialBookingData ? 2 : 1)
   const [servicesList, setServicesList] = useState(FALLBACK_SERVICES)
   const [isLoadingServices, setIsLoadingServices] = useState(true)
+  const [barbersList, setBarbersList] = useState(INITIAL_DEFAULT_BARBERS)
+  const [isLoadingBarbers, setIsLoadingBarbers] = useState(true)
   const [selectedService, setSelectedService] = useState(initialBookingData?.service || FALLBACK_SERVICES[0])
   const [selectedBarber, setSelectedBarber] = useState(initialBookingData?.barber || null)
-  const [selectedDate, setSelectedDate] = useState(initialBookingData?.date || 'Aug 25, 2026')
+  
+  // Date states: today & selection
+  const [today] = useState(() => {
+    const t = new Date()
+    t.setHours(0, 0, 0, 0)
+    return t
+  })
+
+  const [selectedDate, setSelectedDate] = useState(() => {
+    if (initialBookingData?.date) return initialBookingData.date
+    const d = new Date()
+    return formatDateString(d)
+  })
+
+  // Calendar month / year view state
+  const [viewMonth, setViewMonth] = useState(() => {
+    const initDate = parseDateString(initialBookingData?.date)
+    return initDate ? initDate.getMonth() : new Date().getMonth()
+  })
+
+  const [viewYear, setViewYear] = useState(() => {
+    const initDate = parseDateString(initialBookingData?.date)
+    return initDate ? initDate.getFullYear() : new Date().getFullYear()
+  })
+
   const [selectedTime, setSelectedTime] = useState(initialBookingData?.time || '')
   const [isSuccessOpen, setIsSuccessOpen] = useState(false)
 
@@ -164,7 +166,6 @@ function BookAppointment({ onBookingComplete, initialBookingData }) {
           const activeOnly = data.filter((s) => s.status === 'Active')
           setServicesList(activeOnly)
           
-          // If initial service was passed or already selected, match with live service if possible
           setSelectedService((prev) => {
             if (!prev) return activeOnly[0] || null
             const match = activeOnly.find((s) => s.id === prev.id || s.name === prev.name)
@@ -180,13 +181,11 @@ function BookAppointment({ onBookingComplete, initialBookingData }) {
 
     loadLiveServices()
 
-    // Real-time updates subscription
     const unsubscribe = subscribeToServices((updatedList) => {
       if (isMounted && updatedList) {
         const activeOnly = updatedList.filter((s) => s.status === 'Active')
         setServicesList(activeOnly)
 
-        // Maintain selection or update price if selected service was modified
         setSelectedService((prev) => {
           if (!prev) return activeOnly[0] || null
           const match = activeOnly.find((s) => s.id === prev.id || s.name === prev.name)
@@ -201,7 +200,91 @@ function BookAppointment({ onBookingComplete, initialBookingData }) {
     }
   }, [])
 
-  const daysList = getUpcomingDays()
+  // Fetch real-time barbers from Supabase / barberService
+  useEffect(() => {
+    let isMounted = true
+
+    const loadLiveBarbers = async () => {
+      try {
+        const data = await fetchBarbers()
+        if (isMounted && data && data.length > 0) {
+          setBarbersList(data)
+
+          // Align pre-selected barber if any
+          setSelectedBarber((prev) => {
+            if (!prev) return null
+            const match = data.find((b) => b.id === prev.id || b.name === prev.name)
+            return match || prev
+          })
+        }
+      } catch (err) {
+        console.error('Error loading barbers in BookAppointment:', err)
+      } finally {
+        if (isMounted) setIsLoadingBarbers(false)
+      }
+    }
+
+    loadLiveBarbers()
+
+    const unsubscribe = subscribeToBarbers((updatedList) => {
+      if (isMounted && updatedList && updatedList.length > 0) {
+        setBarbersList(updatedList)
+
+        setSelectedBarber((prev) => {
+          if (!prev) return null
+          const match = updatedList.find((b) => b.id === prev.id || b.name === prev.name)
+          return match || prev
+        })
+      }
+    })
+
+    return () => {
+      isMounted = false
+      unsubscribe()
+    }
+  }, [])
+
+  // Maximum booking advance window: up to 90 days
+  const maxBookingDate = new Date(today)
+  maxBookingDate.setDate(today.getDate() + 90)
+
+  // Calendar calculations for viewMonth and viewYear
+  const firstDayOfMonth = new Date(viewYear, viewMonth, 1).getDay()
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
+
+  // Can we navigate backward / forward?
+  const canGoPrevMonth =
+    viewYear > today.getFullYear() ||
+    (viewYear === today.getFullYear() && viewMonth > today.getMonth())
+  const canGoNextMonth = new Date(viewYear, viewMonth + 1, 1) <= maxBookingDate
+
+  const handlePrevMonth = () => {
+    if (!canGoPrevMonth) return
+    if (viewMonth === 0) {
+      setViewMonth(11)
+      setViewYear((prev) => prev - 1)
+    } else {
+      setViewMonth((prev) => prev - 1)
+    }
+  }
+
+  const handleNextMonth = () => {
+    if (!canGoNextMonth) return
+    if (viewMonth === 11) {
+      setViewMonth(0)
+      setViewYear((prev) => prev + 1)
+    } else {
+      setViewMonth((prev) => prev + 1)
+    }
+  }
+
+  const handleSelectQuickDay = (offsetDays) => {
+    const target = new Date(today)
+    target.setDate(today.getDate() + offsetDays)
+    setSelectedDate(formatDateString(target))
+    setViewMonth(target.getMonth())
+    setViewYear(target.getFullYear())
+  }
 
   // Calculate numeric total price
   const totalPrice = selectedService
@@ -411,27 +494,65 @@ function BookAppointment({ onBookingComplete, initialBookingData }) {
               </div>
 
               <div className="book-barbers-grid">
-                {BARBERS_DATA.map((barber) => {
-                  const isSelected = selectedBarber?.id === barber.id
-                  return (
-                    <div
-                      key={barber.id}
-                      className={`book-barber-card ${isSelected ? 'selected' : ''}`}
-                      onClick={() => setSelectedBarber(barber)}
-                    >
-                      <div className="book-barber-avatar-box">
-                        <img
-                          src={barbersIconsImg}
-                          alt={barber.name}
-                          className="book-barber-avatar-img"
-                        />
+                {isLoadingBarbers && barbersList.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280', gridColumn: '1 / -1' }}>
+                    Loading crew staff...
+                  </div>
+                ) : (
+                  barbersList.map((barber) => {
+                    const isSelected = selectedBarber?.id === barber.id || selectedBarber?.name === barber.name
+                    const isInactive = barber.status === 'Inactive'
+
+                    // Active booking count for this barber
+                    const activeBarberBookings = appointments.filter((appt) => {
+                      const isMatching =
+                        appt.barber?.id === barber.id ||
+                        (appt.barber?.name && appt.barber.name.toLowerCase() === barber.name.toLowerCase())
+                      const isActive =
+                        appt.status === 'confirmed' || appt.status === 'pending' || appt.status === 'in-progress'
+                      return isMatching && isActive
+                    })
+
+                    return (
+                      <div
+                        key={barber.id}
+                        className={`book-barber-card ${isSelected ? 'selected' : ''} ${isInactive ? 'inactive' : ''}`}
+                        onClick={() => !isInactive && setSelectedBarber(barber)}
+                      >
+                        {/* Live Booking Status Badge */}
+                        <div className="book-barber-status-pill">
+                          {isInactive ? (
+                            <span className="book-barber-status inactive">
+                              🔴 Off Duty
+                            </span>
+                          ) : activeBarberBookings.length > 0 ? (
+                            <span className="book-barber-status busy">
+                              🟡 {activeBarberBookings.length} Booking{activeBarberBookings.length > 1 ? 's' : ''}
+                            </span>
+                          ) : (
+                            <span className="book-barber-status available">
+                              🟢 Available
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="book-barber-avatar-box">
+                          <img
+                            src={barbersIconsImg}
+                            alt={barber.name}
+                            className="book-barber-avatar-img"
+                          />
+                        </div>
+                        <span className="book-barber-name">{barber.name}</span>
+                        <span className="book-barber-role">{barber.position}</span>
+                        <span className="book-barber-specialty">{barber.specialty}</span>
+                        <span className="book-barber-schedule">
+                          ⏱ {barber.hours || `${barber.startTime || '9:00 AM'} - ${barber.endTime || '6:00 PM'}`}
+                        </span>
                       </div>
-                      <span className="book-barber-name">{barber.name}</span>
-                      <span className="book-barber-role">{barber.role}</span>
-                      <span className="book-barber-rating">{barber.rating}</span>
-                    </div>
-                  )
-                })}
+                    )
+                  })
+                )}
               </div>
             </>
           )}
@@ -441,30 +562,141 @@ function BookAppointment({ onBookingComplete, initialBookingData }) {
             <>
               <div className="book-panel-header">
                 <h2 className="book-panel-title">Select a Date</h2>
-                <p className="book-panel-subtitle">Choose the date for your visit.</p>
+                <p className="book-panel-subtitle">Choose your preferred appointment date.</p>
               </div>
 
               <div className="book-date-wrapper">
-                <div className="book-date-nav">
-                  <span>August 2026</span>
-                  <span style={{ fontSize: '0.85rem', color: '#6b7280' }}>Available schedule</span>
+                {/* Quick Date Presets */}
+                <div className="book-date-presets">
+                  <span className="book-date-presets-label">Quick select:</span>
+                  <button
+                    type="button"
+                    className={`book-date-preset-btn ${selectedDate === formatDateString(today) ? 'active' : ''}`}
+                    onClick={() => handleSelectQuickDay(0)}
+                  >
+                    Today
+                  </button>
+                  <button
+                    type="button"
+                    className={`book-date-preset-btn ${
+                      selectedDate === formatDateString(new Date(today.getTime() + 86400000)) ? 'active' : ''
+                    }`}
+                    onClick={() => handleSelectQuickDay(1)}
+                  >
+                    Tomorrow
+                  </button>
+                  <button
+                    type="button"
+                    className={`book-date-preset-btn ${
+                      selectedDate === formatDateString(new Date(today.getTime() + 2 * 86400000)) ? 'active' : ''
+                    }`}
+                    onClick={() => handleSelectQuickDay(2)}
+                  >
+                    In 2 Days
+                  </button>
                 </div>
 
-                <div className="book-days-grid">
-                  {daysList.map((day) => {
-                    const isSelected = selectedDate === day.dateStr
-                    return (
-                      <div
-                        key={day.dateStr}
-                        className={`book-day-card ${isSelected ? 'selected' : ''}`}
-                        onClick={() => setSelectedDate(day.dateStr)}
+                {/* Calendar Card Shell */}
+                <div className="book-calendar-container">
+                  {/* Calendar Navigation Bar */}
+                  <div className="book-calendar-header">
+                    <div className="book-calendar-title-group">
+                      <span className="book-calendar-month-title">
+                        {MONTH_NAMES_FULL[viewMonth]} {viewYear}
+                      </span>
+                    </div>
+
+                    <div className="book-calendar-nav-actions">
+                      <button
+                        type="button"
+                        className="book-cal-nav-btn"
+                        onClick={handlePrevMonth}
+                        disabled={!canGoPrevMonth}
+                        title="Previous Month"
+                        aria-label="Previous Month"
                       >
-                        <span className="book-day-name">{day.dayName}</span>
-                        <span className="book-day-number">{day.dayNumber}</span>
+                        ‹
+                      </button>
+                      <button
+                        type="button"
+                        className="book-cal-nav-btn today-jump"
+                        onClick={() => {
+                          setViewMonth(today.getMonth())
+                          setViewYear(today.getFullYear())
+                        }}
+                        title="Jump to Current Month"
+                      >
+                        This Month
+                      </button>
+                      <button
+                        type="button"
+                        className="book-cal-nav-btn"
+                        onClick={handleNextMonth}
+                        disabled={!canGoNextMonth}
+                        title="Next Month"
+                        aria-label="Next Month"
+                      >
+                        ›
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Day Names Row (Sun - Sat) */}
+                  <div className="book-cal-weekdays">
+                    {DAY_NAMES_SHORT.map((dayName) => (
+                      <div key={dayName} className="book-cal-weekday">
+                        {dayName}
                       </div>
-                    )
-                  })}
+                    ))}
+                  </div>
+
+                  {/* Days Matrix */}
+                  <div className="book-cal-grid">
+                    {/* Leading empty slots */}
+                    {Array.from({ length: firstDayOfMonth }).map((_, idx) => (
+                      <div key={`empty-${idx}`} className="book-cal-day-cell empty" />
+                    ))}
+
+                    {/* Day number cells */}
+                    {Array.from({ length: daysInMonth }).map((_, idx) => {
+                      const dayNum = idx + 1
+                      const cellDate = new Date(viewYear, viewMonth, dayNum)
+                      cellDate.setHours(0, 0, 0, 0)
+                      const isPast = cellDate < today
+                      const isTooFar = cellDate > maxBookingDate
+                      const isDisabled = isPast || isTooFar
+                      const dateStr = formatDateString(cellDate)
+                      const isSelected = selectedDate === dateStr
+                      const isToday = cellDate.getTime() === today.getTime()
+
+                      return (
+                        <button
+                          type="button"
+                          key={`day-${dayNum}`}
+                          className={`book-cal-day-cell ${isSelected ? 'selected' : ''} ${
+                            isToday ? 'today' : ''
+                          } ${isDisabled ? 'disabled' : ''}`}
+                          disabled={isDisabled}
+                          onClick={() => !isDisabled && setSelectedDate(dateStr)}
+                        >
+                          <span className="book-cal-day-num">{dayNum}</span>
+                          {isToday && <span className="book-cal-today-dot" />}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
+
+                {/* Selected Date Confirmation Banner */}
+                {selectedDate && (
+                  <div className="book-selected-date-banner">
+                    <span className="book-selected-date-icon">📅</span>
+                    <div className="book-selected-date-info">
+                      <span className="book-selected-date-label">Selected Appointment Date:</span>
+                      <strong className="book-selected-date-value">{selectedDate}</strong>
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -474,7 +706,10 @@ function BookAppointment({ onBookingComplete, initialBookingData }) {
             <>
               <div className="book-panel-header">
                 <h2 className="book-panel-title">Select a Time Slot</h2>
-                <p className="book-panel-subtitle">Available time slots for {selectedDate}.</p>
+                <p className="book-panel-subtitle">
+                  Available time slots for <strong>{selectedDate}</strong>
+                  {selectedBarber ? ` with ${selectedBarber.name}` : ''}.
+                </p>
               </div>
 
               <div className="book-time-wrapper">
@@ -482,14 +717,38 @@ function BookAppointment({ onBookingComplete, initialBookingData }) {
                 <div className="book-time-grid">
                   {TIME_SLOTS.map((time) => {
                     const isSelected = selectedTime === time
+
+                    // Check if selected barber is already booked at this exact date & time
+                    const isBarberBookedAtSlot = appointments.some((a) => {
+                      const isMatchingBarber =
+                        selectedBarber &&
+                        (a.barber?.id === selectedBarber.id ||
+                          (a.barber?.name && a.barber.name.toLowerCase() === selectedBarber.name.toLowerCase()))
+                      const isActive =
+                        a.status === 'confirmed' || a.status === 'pending' || a.status === 'in-progress'
+                      const isSameDate = a.date === selectedDate
+                      const isSameTime = a.time === time || a.confirmedTime === time || a.requestedTime === time
+                      return isMatchingBarber && isActive && isSameDate && isSameTime
+                    })
+
                     return (
-                      <div
+                      <button
+                        type="button"
                         key={time}
-                        className={`book-time-btn ${isSelected ? 'selected' : ''}`}
-                        onClick={() => setSelectedTime(time)}
+                        className={`book-time-slot-btn ${isSelected ? 'selected' : ''} ${
+                          isBarberBookedAtSlot ? 'booked disabled' : ''
+                        }`}
+                        disabled={isBarberBookedAtSlot}
+                        onClick={() => !isBarberBookedAtSlot && setSelectedTime(time)}
+                        title={
+                          isBarberBookedAtSlot
+                            ? `${selectedBarber?.name || 'Barber'} is already booked at ${time}`
+                            : `Select ${time}`
+                        }
                       >
-                        {time}
-                      </div>
+                        <span>{time}</span>
+                        {isBarberBookedAtSlot && <span className="book-slot-booked-tag">Booked</span>}
+                      </button>
                     )
                   })}
                 </div>
@@ -554,6 +813,12 @@ function BookAppointment({ onBookingComplete, initialBookingData }) {
               className="book-btn-next"
               style={{ marginLeft: currentStep === 1 ? 'auto' : undefined }}
               onClick={handleNext}
+              disabled={
+                (currentStep === 1 && !selectedService) ||
+                (currentStep === 2 && !selectedBarber) ||
+                (currentStep === 3 && !selectedDate) ||
+                (currentStep === 4 && !selectedTime)
+              }
             >
               {getStepNextButtonText()}
             </button>
