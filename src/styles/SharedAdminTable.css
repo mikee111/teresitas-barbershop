@@ -87,6 +87,7 @@
 /* Table Elements */
 .appointment-table-wrapper {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .appointment-table {
@@ -497,6 +498,32 @@
   font-size: 0.9rem;
   color: #111827;
   font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .appointment-table-titlebar {
+    padding: 0.85rem 1rem;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
+  .appointment-table-titlebar h2 {
+    font-size: 0.9rem;
+  }
+
+  .services-search-wrapper {
+    max-width: 100%;
+  }
+
+  .appointment-table thead th,
+  .appointment-table tbody td {
+    padding: 0.75rem 0.85rem;
+    font-size: 0.82rem;
+  }
+
+  .appointment-modal-overlay {
+    padding: 0.75rem;
+  }
 }
 
 @media (max-width: 540px) {

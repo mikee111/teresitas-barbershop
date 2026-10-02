@@ -48,13 +48,13 @@
 
 @media (max-width: 768px) {
   .appointment-page-container {
-    margin: -1rem;
-    padding: 1rem 1rem 1.5rem;
+    margin: 0;
+    padding: 0.75rem;
   }
 
   .appointment-canvas {
-    padding: 1rem 0.85rem 1.25rem;
-    min-height: 420px;
+    padding: 0.85rem 0.75rem 1.25rem;
+    min-height: auto;
   }
 
   .appointment-table-titlebar {

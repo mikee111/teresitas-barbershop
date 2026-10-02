@@ -18,6 +18,7 @@ function UserDashboard({ user, onLogout, onUserUpdate, appointments = [], onUpda
   const [rebookData, setRebookData] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
 
   const handleLogout = () => {
     setIsLoggingOut(true)
@@ -71,22 +72,43 @@ function UserDashboard({ user, onLogout, onUserUpdate, appointments = [], onUpda
 
   return (
     <div className="dashboard-container">
+      {/* Mobile Drawer Backdrop */}
+      {isMobileSidebarOpen && (
+        <div
+          className="dashboard-sidebar-backdrop"
+          onClick={() => setIsMobileSidebarOpen(false)}
+        />
+      )}
+
       {/* Left Sidebar Navigation */}
-      <aside className="dashboard-sidebar">
+      <aside className={`dashboard-sidebar ${isMobileSidebarOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-top">
           <div className="sidebar-logo">
-            <span className="sidebar-logo-icon">💈</span>
-            <div className="sidebar-logo-text">
-              <span className="sidebar-logo-brand">TERESITAS</span>
-              <span className="sidebar-logo-sub">BARBERSHOP</span>
+            <div className="sidebar-logo-brand-wrap">
+              <span className="sidebar-logo-icon">💈</span>
+              <div className="sidebar-logo-text">
+                <span className="sidebar-logo-brand">TERESITAS</span>
+                <span className="sidebar-logo-sub">BARBERSHOP</span>
+              </div>
             </div>
+            <button
+              type="button"
+              className="sidebar-mobile-close-btn"
+              onClick={() => setIsMobileSidebarOpen(false)}
+              aria-label="Close menu"
+            >
+              ✕
+            </button>
           </div>
 
           <nav className="sidebar-menu">
             {/* My Appointments (with count badge) */}
             <button
               className={`sidebar-btn ${activeNav === 'my-appointments' ? 'active' : ''}`}
-              onClick={() => setActiveNav('my-appointments')}
+              onClick={() => {
+                setActiveNav('my-appointments')
+                setIsMobileSidebarOpen(false)
+              }}
               style={{ position: 'relative' }}
             >
               {reviewIcon ? (
@@ -124,6 +146,7 @@ function UserDashboard({ user, onLogout, onUserUpdate, appointments = [], onUpda
               onClick={() => {
                 setRebookData(null)
                 setActiveNav('appointment')
+                setIsMobileSidebarOpen(false)
               }}
             >
               <span className="sidebar-btn-icon">📅</span>
@@ -133,7 +156,10 @@ function UserDashboard({ user, onLogout, onUserUpdate, appointments = [], onUpda
             {/* Services */}
             <button
               className={`sidebar-btn ${activeNav === 'services' ? 'active' : ''}`}
-              onClick={() => setActiveNav('services')}
+              onClick={() => {
+                setActiveNav('services')
+                setIsMobileSidebarOpen(false)
+              }}
             >
               {servicesScissorIcon ? (
                 <img
@@ -151,7 +177,10 @@ function UserDashboard({ user, onLogout, onUserUpdate, appointments = [], onUpda
             {/* My Profile */}
             <button
               className={`sidebar-btn ${activeNav === 'profile' ? 'active' : ''}`}
-              onClick={() => setActiveNav('profile')}
+              onClick={() => {
+                setActiveNav('profile')
+                setIsMobileSidebarOpen(false)
+              }}
             >
               {clientSidebarIcon ? (
                 <img
@@ -191,7 +220,19 @@ function UserDashboard({ user, onLogout, onUserUpdate, appointments = [], onUpda
       <div className="dashboard-main">
         {/* Top Header Bar */}
         <header className="dashboard-topbar">
-          <h1 className="topbar-page-title">{pageTitles[activeNav] || ''}</h1>
+          <div className="topbar-left">
+            <button
+              type="button"
+              className="dashboard-hamburger-btn"
+              onClick={() => setIsMobileSidebarOpen((prev) => !prev)}
+              aria-label="Toggle navigation menu"
+            >
+              <span className="hamburger-line"></span>
+              <span className="hamburger-line"></span>
+              <span className="hamburger-line"></span>
+            </button>
+            <h1 className="topbar-page-title">{pageTitles[activeNav] || ''}</h1>
+          </div>
 
           <div className="dashboard-search">
             <input
