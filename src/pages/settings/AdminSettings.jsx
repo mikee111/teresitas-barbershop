@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import '../../styles/SharedAdminTable.css'
 import '../../styles/settings/Settings.css'
+import { optimizeAvatarImage } from '../../utils/imageOptimizer'
 
 function AdminSettings({ onUpdateUser, user }) {
   const getInitialName = () => {
@@ -12,7 +13,11 @@ function AdminSettings({ onUpdateUser, user }) {
   const [fullName, setFullName] = useState(getInitialName)
   const [email, setEmail] = useState(() => user?.email || 'admin@teresitas.com')
   const [isEditing, setIsEditing] = useState(false)
-  const [avatarUrl, setAvatarUrl] = useState(() => user?.avatarUrl || null)
+  const [avatarUrl, setAvatarUrl] = useState(() => {
+    return user?.avatarUrl || (typeof window !== 'undefined' ? localStorage.getItem('tb_admin_avatar') : null) || null
+  })
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadFeedback, setUploadFeedback] = useState('')
   const [savedSuccess, setSavedSuccess] = useState(false)
 
   const fileInputRef = useRef(null)
@@ -20,8 +25,11 @@ function AdminSettings({ onUpdateUser, user }) {
   // Sync state if user prop changes or loads from session
   useEffect(() => {
     if (user) {
-      if (user.avatarUrl !== undefined) {
+      const persistedAvatar = typeof window !== 'undefined' ? localStorage.getItem('tb_admin_avatar') : null
+      if (user.avatarUrl) {
         setAvatarUrl(user.avatarUrl)
+      } else if (persistedAvatar) {
+        setAvatarUrl(persistedAvatar)
       }
       if (user.email) {
         setEmail(user.email)
@@ -33,24 +41,40 @@ function AdminSettings({ onUpdateUser, user }) {
     }
   }, [user])
 
-  const handlePhotoUpload = (e) => {
+  const handlePhotoUpload = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Convert file to permanent Base64 data URL so it survives reloads & logouts
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const dataUrl = event.target.result
+    setIsUploading(true)
+    setUploadFeedback('')
+
+    try {
+      // Compress and optimize image for mobile browsers & localStorage quota
+      const dataUrl = await optimizeAvatarImage(file, 360, 360, 0.82)
       setAvatarUrl(dataUrl)
+
+      // Save directly to dedicated admin avatar key as instant local fallback
+      try {
+        localStorage.setItem('tb_admin_avatar', dataUrl)
+      } catch (err) {
+        console.warn('LocalStorage save failed:', err)
+      }
+
       if (onUpdateUser) {
         onUpdateUser({ avatarUrl: dataUrl })
       }
-    }
-    reader.readAsDataURL(file)
-  }
 
-  const handleTriggerPhoto = () => {
-    fileInputRef.current?.click()
+      setUploadFeedback('✓ Photo updated!')
+      setTimeout(() => setUploadFeedback(''), 3500)
+    } catch (err) {
+      console.error('Failed to process image:', err)
+      setUploadFeedback('Failed to upload image. Please try again.')
+    } finally {
+      setIsUploading(false)
+      if (e.target) {
+        e.target.value = ''
+      }
+    }
   }
 
   const handleEditToggle = () => {
@@ -63,6 +87,14 @@ function AdminSettings({ onUpdateUser, user }) {
     const nameParts = fullName.trim().split(/\s+/)
     const firstName = nameParts[0] || 'Admin'
     const lastName = nameParts.slice(1).join(' ') || ''
+
+    if (avatarUrl) {
+      try {
+        localStorage.setItem('tb_admin_avatar', avatarUrl)
+      } catch {
+        // ignore
+      }
+    }
 
     if (onUpdateUser) {
       onUpdateUser({
@@ -102,7 +134,33 @@ function AdminSettings({ onUpdateUser, user }) {
         <div className="admin-profile-picture-section">
           <label className="admin-profile-section-label">Profile Picture</label>
 
-          <div className="admin-profile-avatar-box">
+          {/* Accessible off-screen file input linked to labels */}
+          <input
+            id="admin-photo-input"
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handlePhotoUpload}
+            style={{
+              position: 'absolute',
+              width: '1px',
+              height: '1px',
+              padding: 0,
+              margin: '-1px',
+              overflow: 'hidden',
+              clip: 'rect(0,0,0,0)',
+              border: 0,
+              opacity: 0,
+            }}
+          />
+
+          {/* Avatar box is a tap-target on mobile */}
+          <label
+            htmlFor="admin-photo-input"
+            className="admin-profile-avatar-box"
+            style={{ cursor: 'pointer' }}
+            title="Tap to change photo"
+          >
             {avatarUrl ? (
               <img
                 src={avatarUrl}
@@ -114,24 +172,30 @@ function AdminSettings({ onUpdateUser, user }) {
                 {getInitials(fullName)}
               </span>
             )}
-          </div>
+          </label>
 
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handlePhotoUpload}
-            accept="image/*"
-            style={{ display: 'none' }}
-          />
-
-          <button
-            type="button"
+          {/* Change photo button as a native label so mobile Safari & Chrome open the file picker directly */}
+          <label
+            htmlFor="admin-photo-input"
             className="admin-profile-btn-photo"
-            onClick={handleTriggerPhoto}
+            style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
           >
             <span>📷</span>
-            <span>Change Photo</span>
-          </button>
+            <span>{isUploading ? 'Optimizing...' : 'Change Photo'}</span>
+          </label>
+
+          {uploadFeedback && (
+            <span
+              style={{
+                fontSize: '0.84rem',
+                color: uploadFeedback.startsWith('✓') ? '#166534' : '#dc2626',
+                fontWeight: 600,
+                marginTop: '0.2rem'
+              }}
+            >
+              {uploadFeedback}
+            </span>
+          )}
         </div>
 
         {/* Form Fields */}

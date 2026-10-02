@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import '../../styles/SharedAdminTable.css'
 import '../../styles/settings/Settings.css'
 import '../../styles/MyProfile.css'
+import { optimizeAvatarImage } from '../../utils/imageOptimizer'
 
 function MyProfile({ user, onUpdateUser }) {
   const [formData, setFormData] = useState({
@@ -20,6 +21,8 @@ function MyProfile({ user, onUpdateUser }) {
   const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || null)
   const [savedSuccess, setSavedSuccess] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadFeedback, setUploadFeedback] = useState('')
 
   const fileInputRef = useRef(null)
 
@@ -43,20 +46,28 @@ function MyProfile({ user, onUpdateUser }) {
     }
   }, [user])
 
-  const handlePhotoUpload = (e) => {
+  const handlePhotoUpload = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const dataUrl = event.target.result
+    setIsUploading(true)
+    setUploadFeedback('')
+
+    try {
+      const dataUrl = await optimizeAvatarImage(file, 360, 360, 0.82)
       setAvatarUrl(dataUrl)
-      // Immediately propagate to parent so top-right avatar updates in real time
       if (onUpdateUser) {
         onUpdateUser({ avatarUrl: dataUrl })
       }
+      setUploadFeedback('✓ Photo updated!')
+      setTimeout(() => setUploadFeedback(''), 3500)
+    } catch (err) {
+      console.error('Failed to process image:', err)
+      setUploadFeedback('Failed to update photo')
+    } finally {
+      setIsUploading(false)
+      if (e.target) e.target.value = ''
     }
-    reader.readAsDataURL(file)
   }
 
   const handleTriggerPhoto = () => {
@@ -160,7 +171,31 @@ function MyProfile({ user, onUpdateUser }) {
         <div className="admin-profile-picture-section">
           <label className="admin-profile-section-label">Profile Picture</label>
 
-          <div className="admin-profile-avatar-box user-avatar-box">
+          <input
+            id="user-photo-input"
+            ref={fileInputRef}
+            type="file"
+            onChange={handlePhotoUpload}
+            accept="image/*"
+            style={{
+              position: 'absolute',
+              width: '1px',
+              height: '1px',
+              padding: 0,
+              margin: '-1px',
+              overflow: 'hidden',
+              clip: 'rect(0,0,0,0)',
+              border: 0,
+              opacity: 0,
+            }}
+          />
+
+          <label
+            htmlFor="user-photo-input"
+            className="admin-profile-avatar-box user-avatar-box"
+            style={{ cursor: 'pointer' }}
+            title="Tap to change photo"
+          >
             {avatarUrl ? (
               <img
                 src={avatarUrl}
@@ -174,24 +209,29 @@ function MyProfile({ user, onUpdateUser }) {
                 </span>
               </div>
             )}
-          </div>
+          </label>
 
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handlePhotoUpload}
-            accept="image/*"
-            style={{ display: 'none' }}
-          />
-
-          <button
-            type="button"
+          <label
+            htmlFor="user-photo-input"
             className="admin-profile-btn-photo user-photo-btn"
-            onClick={handleTriggerPhoto}
+            style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
           >
             <span>📷</span>
-            <span>Change Photo</span>
-          </button>
+            <span>{isUploading ? 'Optimizing...' : 'Change Photo'}</span>
+          </label>
+
+          {uploadFeedback && (
+            <span
+              style={{
+                fontSize: '0.84rem',
+                color: uploadFeedback.startsWith('✓') ? '#166534' : '#dc2626',
+                fontWeight: 600,
+                marginTop: '0.2rem'
+              }}
+            >
+              {uploadFeedback}
+            </span>
+          )}
         </div>
 
         {/* Form Fields matching Admin Profile */}

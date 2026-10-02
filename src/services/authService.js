@@ -138,6 +138,8 @@ export const formatUserRecord = (row) => {
     (row.role === 'admin' ? getPersistentProfile('admin') : null) ||
     {}
 
+  const adminAvatar = typeof window !== 'undefined' && row.role === 'admin' ? localStorage.getItem('tb_admin_avatar') : null
+
   return {
     id: row.id,
     email: row.email,
@@ -155,7 +157,7 @@ export const formatUserRecord = (row) => {
     contact: persistent.contact || row.contact || '',
     password: row.password || '',
     role: row.role || 'user',
-    avatarUrl: persistent.avatarUrl || row.avatar_url || row.avatarUrl || null,
+    avatarUrl: persistent.avatarUrl || adminAvatar || row.avatar_url || row.avatarUrl || null,
     createdAt: row.created_at || new Date().toISOString()
   }
 }
@@ -229,7 +231,7 @@ export const loginUser = async (identifier, password) => {
         address: persistent.address || mockMatch.address,
         contact: persistent.contact || mockMatch.contact,
         role,
-        avatarUrl: persistent.avatarUrl || null
+        avatarUrl: persistent.avatarUrl || (typeof window !== 'undefined' && role === 'admin' ? localStorage.getItem('tb_admin_avatar') : null) || null
       }
       saveSession(user)
       return { success: true, user }

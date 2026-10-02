@@ -699,7 +699,7 @@ function Dashboard({ onBackToSite, user, appointments, onUpdateAppointment, onUs
             </button>
             <div className="user-profile">
               <img
-                src={user?.avatarUrl || lowFadeImg}
+                src={user?.avatarUrl || (typeof window !== 'undefined' ? localStorage.getItem('tb_admin_avatar') : null) || lowFadeImg}
                 alt="User Profile"
                 className="user-avatar"
               />
