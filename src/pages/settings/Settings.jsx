@@ -5,7 +5,7 @@ import SecuritySettings from './SecuritySettings'
 import AdminSettings from './AdminSettings'
 import CustomerAccounts from './CustomerAccounts'
 
-function Settings({ activeSubNav = 'business-info', _onSelectSubNav, onUpdateUser }) {
+function Settings({ activeSubNav = 'business-info', _onSelectSubNav, onUpdateUser, user }) {
   if (activeSubNav === 'business-info') {
     return <BusinessInfo />
   }
@@ -15,7 +15,7 @@ function Settings({ activeSubNav = 'business-info', _onSelectSubNav, onUpdateUse
   }
 
   if (activeSubNav === 'admin') {
-    return <AdminSettings onUpdateUser={onUpdateUser} />
+    return <AdminSettings onUpdateUser={onUpdateUser} user={user} />
   }
 
   if (activeSubNav === 'customer-accounts') {

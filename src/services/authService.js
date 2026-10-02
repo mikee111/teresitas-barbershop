@@ -31,6 +31,52 @@ export const DEFAULT_ACCOUNTS = [
 
 const REGISTERED_USERS_KEY = 'tb_registered_users'
 const USER_EVENT_KEY = 'tb_user_registered'
+const PERSISTENT_PROFILES_KEY = 'tb_persistent_profiles'
+
+export const getPersistentProfiles = () => {
+  if (typeof window === 'undefined') return {}
+  try {
+    const raw = localStorage.getItem(PERSISTENT_PROFILES_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
+export const savePersistentProfile = (identifier, profileData) => {
+  if (typeof window === 'undefined' || !identifier || !profileData) return
+  try {
+    const all = getPersistentProfiles()
+    const cleanId = String(identifier).trim().toLowerCase()
+    const merged = {
+      ...(all[cleanId] || {}),
+      ...profileData,
+      updatedAt: Date.now()
+    }
+
+    all[cleanId] = merged
+    if (profileData.email) {
+      all[String(profileData.email).trim().toLowerCase()] = merged
+    }
+    if (profileData.username) {
+      all[String(profileData.username).trim().toLowerCase()] = merged
+    }
+    if (profileData.role === 'admin' || cleanId === 'admin') {
+      all['admin'] = merged
+      all['admin@teresitas.com'] = merged
+    }
+    localStorage.setItem(PERSISTENT_PROFILES_KEY, JSON.stringify(all))
+  } catch (e) {
+    console.warn('Failed to save persistent profile:', e)
+  }
+}
+
+export const getPersistentProfile = (identifier) => {
+  if (!identifier) return null
+  const all = getPersistentProfiles()
+  const cleanId = String(identifier).trim().toLowerCase()
+  return all[cleanId] || null
+}
 
 // BroadcastChannel for cross-tab realtime sync
 let authBroadcastChannel = null
@@ -82,22 +128,37 @@ const saveLocalRegisteredUser = (user) => {
 }
 
 // Helper to normalize user row from Supabase to frontend model
-export const formatUserRecord = (row) => ({
-  id: row.id,
-  email: row.email,
-  username: row.username || row.email?.split('@')[0],
-  firstName: row.first_name || 'User',
-  middleName: row.middle_name || '',
-  lastName: row.last_name || '',
-  name: `${row.first_name || ''} ${row.last_name || ''}`.trim() || 'User',
-  birthdate: row.birthdate || '',
-  age: row.age || '',
-  address: row.address || '',
-  contact: row.contact || '',
-  password: row.password || '',
-  role: row.role || 'user',
-  createdAt: row.created_at || new Date().toISOString()
-})
+export const formatUserRecord = (row) => {
+  const email = (row.email || '').toLowerCase()
+  const username = (row.username || email.split('@')[0] || '').toLowerCase()
+  const persistent =
+    getPersistentProfile(email) ||
+    getPersistentProfile(username) ||
+    getPersistentProfile(row.id) ||
+    (row.role === 'admin' ? getPersistentProfile('admin') : null) ||
+    {}
+
+  return {
+    id: row.id,
+    email: row.email,
+    username: row.username || row.email?.split('@')[0],
+    firstName: persistent.firstName || row.first_name || 'User',
+    middleName: persistent.middleName || row.middle_name || '',
+    lastName: persistent.lastName || row.last_name || '',
+    name:
+      persistent.name ||
+      `${persistent.firstName || row.first_name || ''} ${persistent.lastName || row.last_name || ''}`.trim() ||
+      'User',
+    birthdate: persistent.birthdate || row.birthdate || '',
+    age: persistent.age || row.age || '',
+    address: persistent.address || row.address || '',
+    contact: persistent.contact || row.contact || '',
+    password: row.password || '',
+    role: row.role || 'user',
+    avatarUrl: persistent.avatarUrl || row.avatar_url || row.avatarUrl || null,
+    createdAt: row.created_at || new Date().toISOString()
+  }
+}
 
 /**
  * Log in with email or username + password
@@ -147,19 +208,28 @@ export const loginUser = async (identifier, password) => {
 
     if (mockMatch) {
       const role = cleanId === 'admin' || mockMatch.role === 'admin' ? 'admin' : 'user'
+      const persistent =
+        getPersistentProfile(mockMatch.email) ||
+        getPersistentProfile(mockMatch.username) ||
+        getPersistentProfile(role) ||
+        {}
+
       const user = {
         id: role === 'admin' ? 1 : 2,
-        email: mockMatch.email,
+        email: persistent.email || mockMatch.email,
         username: mockMatch.username,
-        firstName: mockMatch.first_name,
-        middleName: mockMatch.middle_name,
-        lastName: mockMatch.last_name,
-        name: `${mockMatch.first_name} ${mockMatch.last_name}`.trim(),
-        birthdate: mockMatch.birthdate,
-        age: mockMatch.age,
-        address: mockMatch.address,
-        contact: mockMatch.contact,
-        role
+        firstName: persistent.firstName || mockMatch.first_name,
+        middleName: persistent.middleName || mockMatch.middle_name,
+        lastName: persistent.lastName || mockMatch.last_name,
+        name:
+          persistent.name ||
+          `${persistent.firstName || mockMatch.first_name || ''} ${persistent.lastName || mockMatch.last_name || ''}`.trim(),
+        birthdate: persistent.birthdate || mockMatch.birthdate,
+        age: persistent.age || mockMatch.age,
+        address: persistent.address || mockMatch.address,
+        contact: persistent.contact || mockMatch.contact,
+        role,
+        avatarUrl: persistent.avatarUrl || null
       }
       saveSession(user)
       return { success: true, user }
@@ -322,6 +392,11 @@ export const saveSession = (user) => {
   if (!user) return
   try {
     localStorage.setItem('tb_auth_user', JSON.stringify(user))
+    // Save to persistent storage so it survives logout
+    if (user.email) savePersistentProfile(user.email, user)
+    if (user.username) savePersistentProfile(user.username, user)
+    if (user.role) savePersistentProfile(user.role, user)
+    if (user.id) savePersistentProfile(user.id, user)
   } catch (e) {
     console.error('Failed to save session to localStorage', e)
   }
@@ -340,9 +415,14 @@ export const getCurrentSession = () => {
 }
 
 /**
- * Update user profile in Supabase
+ * Update user profile in Supabase & persistent storage
  */
 export const updateUserProfile = async (idOrEmail, updates) => {
+  // Always persist locally first so it immediately survives refresh/logout
+  if (idOrEmail) {
+    savePersistentProfile(idOrEmail, updates)
+  }
+
   try {
     const dbUpdates = {}
     if (updates.firstName !== undefined) dbUpdates.first_name = updates.firstName
@@ -354,6 +434,7 @@ export const updateUserProfile = async (idOrEmail, updates) => {
     if (updates.address !== undefined) dbUpdates.address = updates.address
     if (updates.password !== undefined) dbUpdates.password = updates.password
     if (updates.email !== undefined) dbUpdates.email = updates.email.trim().toLowerCase()
+    if (updates.avatarUrl !== undefined) dbUpdates.avatar_url = updates.avatarUrl
 
     if (Object.keys(dbUpdates).length === 0) return null
 
@@ -366,12 +447,24 @@ export const updateUserProfile = async (idOrEmail, updates) => {
 
     const { data, error } = await query.select().maybeSingle()
     if (error) {
-      console.error('Supabase profile update error:', error)
+      // If error might be avatar_url column missing in Supabase, retry without avatar_url
+      if (dbUpdates.avatar_url && error.message?.includes('avatar_url')) {
+        const withoutAvatar = { ...dbUpdates }
+        delete withoutAvatar.avatar_url
+        if (Object.keys(withoutAvatar).length > 0) {
+          let retryQuery = supabase.from('users').update(withoutAvatar)
+          if (typeof idOrEmail === 'number') retryQuery = retryQuery.eq('id', idOrEmail)
+          else retryQuery = retryQuery.eq('email', idOrEmail)
+          const { data: retryData } = await retryQuery.select().maybeSingle()
+          return retryData ? formatUserRecord(retryData) : null
+        }
+      }
+      console.warn('Supabase profile update warning:', error.message)
       return null
     }
     return data ? formatUserRecord(data) : null
   } catch (err) {
-    console.error('Failed to update user profile in Supabase:', err)
+    console.warn('Failed to update user profile in Supabase:', err)
     return null
   }
 }

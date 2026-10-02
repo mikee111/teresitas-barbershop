@@ -19,7 +19,8 @@ import {
   getCurrentSession,
   saveSession,
   logoutUser,
-  updateUserProfile
+  updateUserProfile,
+  savePersistentProfile
 } from './services/authService'
 
 const INITIAL_SHARED_APPOINTMENTS = [
@@ -192,6 +193,11 @@ function App() {
       if (!prev) return prev
       const updated = { ...prev, ...updates }
       saveSession(updated)
+      // Persist across logout using all available identifiers
+      if (updated.email) savePersistentProfile(updated.email, updated)
+      if (updated.username) savePersistentProfile(updated.username, updated)
+      if (updated.role) savePersistentProfile(updated.role, updated)
+      if (updated.id) savePersistentProfile(updated.id, updated)
       return updated
     })
     if (currentUser?.id || currentUser?.email) {

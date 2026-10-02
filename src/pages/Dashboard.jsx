@@ -764,6 +764,7 @@ function Dashboard({ onBackToSite, user, appointments, onUpdateAppointment, onUs
               activeSubNav={settingsSubNav}
               onSelectSubNav={setSettingsSubNav}
               onUpdateUser={onUserUpdate}
+              user={user}
             />
           </main>
         ) : (

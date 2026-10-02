@@ -1,26 +1,52 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import '../../styles/SharedAdminTable.css'
 import '../../styles/settings/Settings.css'
 
-function AdminSettings({ onUpdateUser }) {
-  const [fullName, setFullName] = useState('Mike Arvin Cruz')
-  const [email, setEmail] = useState('admin@barbershop.com')
+function AdminSettings({ onUpdateUser, user }) {
+  const getInitialName = () => {
+    if (user?.name) return user.name
+    if (user?.firstName) return `${user.firstName} ${user.lastName || ''}`.trim()
+    return 'Mike Arvin Cruz'
+  }
+
+  const [fullName, setFullName] = useState(getInitialName)
+  const [email, setEmail] = useState(() => user?.email || 'admin@teresitas.com')
   const [isEditing, setIsEditing] = useState(false)
-  const [avatarUrl, setAvatarUrl] = useState(null)
+  const [avatarUrl, setAvatarUrl] = useState(() => user?.avatarUrl || null)
   const [savedSuccess, setSavedSuccess] = useState(false)
 
   const fileInputRef = useRef(null)
 
-  const handlePhotoUpload = (e) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const url = URL.createObjectURL(file)
-      setAvatarUrl(url)
-      // Propagate avatar URL to parent (admin user)
-      if (onUpdateUser) {
-        onUpdateUser({ avatarUrl: url })
+  // Sync state if user prop changes or loads from session
+  useEffect(() => {
+    if (user) {
+      if (user.avatarUrl !== undefined) {
+        setAvatarUrl(user.avatarUrl)
+      }
+      if (user.email) {
+        setEmail(user.email)
+      }
+      const uName = user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim()
+      if (uName) {
+        setFullName(uName)
       }
     }
+  }, [user])
+
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Convert file to permanent Base64 data URL so it survives reloads & logouts
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const dataUrl = event.target.result
+      setAvatarUrl(dataUrl)
+      if (onUpdateUser) {
+        onUpdateUser({ avatarUrl: dataUrl })
+      }
+    }
+    reader.readAsDataURL(file)
   }
 
   const handleTriggerPhoto = () => {
@@ -34,9 +60,18 @@ function AdminSettings({ onUpdateUser }) {
 
   const handleSaveChanges = (e) => {
     e.preventDefault()
-    // Ensure avatarUrl is saved with other fields if edited
+    const nameParts = fullName.trim().split(/\s+/)
+    const firstName = nameParts[0] || 'Admin'
+    const lastName = nameParts.slice(1).join(' ') || ''
+
     if (onUpdateUser) {
-      onUpdateUser({ avatarUrl })
+      onUpdateUser({
+        firstName,
+        lastName,
+        name: fullName.trim(),
+        email: email.trim().toLowerCase(),
+        avatarUrl
+      })
     }
     setIsEditing(false)
     setSavedSuccess(true)
